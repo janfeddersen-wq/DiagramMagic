@@ -7,6 +7,10 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { DiagramController } from './controllers/diagramController.js';
 import { FileController } from './controllers/fileController.js';
+import { AuthController } from './controllers/authController.js';
+import { ProjectsController } from './controllers/projectsController.js';
+import { DiagramsController } from './controllers/diagramsController.js';
+import { authenticateToken, optionalAuth } from './middleware/auth.js';
 
 dotenv.config();
 
@@ -77,6 +81,9 @@ const fileController = new FileController({
   openRouterApiKey,
   openRouterModel
 });
+const authController = new AuthController();
+const projectsController = new ProjectsController();
+const diagramsController = new DiagramsController();
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -91,8 +98,32 @@ io.on('connection', (socket) => {
 });
 
 // Routes
-app.post('/api/generate', (req, res) => diagramController.generateDiagram(req, res));
-app.post('/api/upload', upload.single('file'), (req, res) => fileController.uploadFile(req, res));
+
+// Auth routes (public)
+app.post('/api/auth/signup', (req, res) => authController.signup(req, res));
+app.post('/api/auth/login', (req, res) => authController.login(req, res));
+app.get('/api/auth/me', authenticateToken, (req, res) => authController.me(req, res));
+
+// Project routes (authenticated)
+app.get('/api/projects', authenticateToken, (req, res) => projectsController.list(req, res));
+app.post('/api/projects', authenticateToken, (req, res) => projectsController.create(req, res));
+app.get('/api/projects/:id', authenticateToken, (req, res) => projectsController.get(req, res));
+app.put('/api/projects/:id', authenticateToken, (req, res) => projectsController.update(req, res));
+app.delete('/api/projects/:id', authenticateToken, (req, res) => projectsController.delete(req, res));
+app.get('/api/projects/:id/chat', authenticateToken, (req, res) => projectsController.getChatHistory(req, res));
+
+// Diagram routes (authenticated)
+app.get('/api/projects/:projectId/diagrams', authenticateToken, (req, res) => diagramsController.listByProject(req, res));
+app.post('/api/projects/:projectId/diagrams', authenticateToken, (req, res) => diagramsController.create(req, res));
+app.get('/api/diagrams/:id', authenticateToken, (req, res) => diagramsController.get(req, res));
+app.get('/api/diagrams/:id/chat', authenticateToken, (req, res) => diagramsController.getChatHistory(req, res));
+app.delete('/api/diagrams/:id', authenticateToken, (req, res) => diagramsController.delete(req, res));
+app.post('/api/diagrams/:id/versions', authenticateToken, (req, res) => diagramsController.createVersion(req, res));
+app.get('/api/diagrams/:id/versions', authenticateToken, (req, res) => diagramsController.listVersions(req, res));
+
+// Existing routes (now with optional auth for backward compatibility)
+app.post('/api/generate', optionalAuth, (req, res) => diagramController.generateDiagram(req, res));
+app.post('/api/upload', upload.single('file'), optionalAuth, (req, res) => fileController.uploadFile(req, res));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

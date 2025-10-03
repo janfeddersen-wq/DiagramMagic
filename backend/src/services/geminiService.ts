@@ -12,15 +12,21 @@ export class GeminiService implements ImageToMermaidService {
   }
 
   /**
-   * Convert an image to a Mermaid diagram
+   * Convert an image to a Mermaid diagram with retry logic
    */
   async convertImageToDiagram(imagePath: string, mimeType: string): Promise<{ diagram: string; description: string }> {
-    try {
-      // Read the image file
-      const imageBuffer = await fs.readFile(imagePath);
-      const imageBase64 = imageBuffer.toString('base64');
+    const maxRetries = 3;
+    let lastError: Error | null = null;
 
-      const prompt = `You are an expert at analyzing images and converting them to Mermaid diagrams.
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Gemini image conversion attempt ${attempt}/${maxRetries}`);
+
+        // Read the image file
+        const imageBuffer = await fs.readFile(imagePath);
+        const imageBase64 = imageBuffer.toString('base64');
+
+        const prompt = `You are an expert at analyzing images and converting them to Mermaid diagrams.
 
 Analyze this image and convert it to a Mermaid diagram. The image might contain:
 - Flowcharts
@@ -46,33 +52,44 @@ Return a JSON object with this structure:
 
 Make sure the Mermaid code is syntactically correct and follows Mermaid best practices.`;
 
-      const result = await this.model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: imageBase64,
-            mimeType: mimeType
+        const result = await this.model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: imageBase64,
+              mimeType: mimeType
+            }
           }
+        ]);
+
+        const response = await result.response;
+        const text = response.text();
+
+        // Parse the JSON response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error('Failed to parse Gemini response - no JSON found in output');
         }
-      ]);
 
-      const response = await result.response;
-      const text = response.text();
+        const parsed = JSON.parse(jsonMatch[0]);
 
-      // Parse the JSON response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('Failed to parse Gemini response');
+        return {
+          diagram: parsed.mermaidDiagram || '',
+          description: parsed.description || 'Diagram converted from image'
+        };
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.error(`Gemini attempt ${attempt} failed:`, lastError.message);
+
+        // If this isn't the last attempt, wait before retrying
+        if (attempt < maxRetries) {
+          const delay = attempt * 1000; // Progressive delay: 1s, 2s
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-
-      return {
-        diagram: parsed.mermaidDiagram || '',
-        description: parsed.description || 'Diagram converted from image'
-      };
-    } catch (error) {
-      throw new Error(`Failed to convert image to diagram: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+
+    throw new Error(`Failed to convert image to diagram after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
   }
 }

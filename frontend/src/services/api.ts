@@ -7,13 +7,24 @@ const API_BASE_URL = '/api';
 export async function generateDiagram(
   prompt: string,
   chatHistory: ChatMessage[],
-  currentDiagram?: string
+  currentDiagram?: string,
+  projectId?: number,
+  diagramId?: number
 ): Promise<DiagramResponse> {
-  const response = await axios.post<DiagramResponse>(`${API_BASE_URL}/generate`, {
-    prompt,
-    chatHistory: chatHistory.slice(-5), // Send only last 5 messages
-    currentDiagram
-  });
+  const token = localStorage.getItem('auth_token');
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const response = await axios.post<DiagramResponse>(
+    `${API_BASE_URL}/generate`,
+    {
+      prompt,
+      chatHistory: chatHistory.slice(-5), // Send only last 5 messages
+      currentDiagram,
+      projectId,
+      diagramId
+    },
+    { headers }
+  );
 
   return response.data;
 }

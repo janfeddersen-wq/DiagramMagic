@@ -19,6 +19,12 @@ logs/
 # Uploads (temporary files)
 uploads/
 
+# Database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
 # Editor directories
 .vscode/
 .idea/

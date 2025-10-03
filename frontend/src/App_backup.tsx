@@ -3,13 +3,10 @@ import { io, Socket } from 'socket.io-client';
 import { MermaidDiagram } from './components/MermaidDiagram';
 import { ChatPanel } from './components/ChatPanel';
 import { HelpSection } from './components/HelpSection';
-import { ProjectSelector } from './components/ProjectSelector';
-import { DiagramsSidebar } from './components/DiagramsSidebar';
+import { ProjectsSidebar } from './components/ProjectsSidebar';
 import { DiagramVersionHistory } from './components/DiagramVersionHistory';
 import { ScratchModeWarning } from './components/ScratchModeWarning';
 import { AuthModal } from './components/AuthModal';
-import { WelcomePage } from './components/WelcomePage';
-import { PromptModal, AlertModal } from './components/Modal';
 import { useAuth } from './contexts/AuthContext';
 import { ChatMessage, RenderValidationRequest, RenderValidationResponse } from './types';
 import { generateDiagram } from './services/api';
@@ -22,12 +19,11 @@ import {
   createDiagram,
   createDiagramVersion,
   getDiagram,
-  getProjectChatHistory,
-  getDiagramChatHistory
+  getProjectChatHistory
 } from './services/projectsApi';
 
 function App() {
-  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentDiagram, setCurrentDiagram] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,21 +36,6 @@ function App() {
   const [currentVersion, setCurrentVersion] = useState<DiagramVersion | null>(null);
   const [isScratchMode, setIsScratchMode] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-
-  // Modal state
-  const [promptModal, setPromptModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: (value: string) => void; defaultValue?: string }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    defaultValue: ''
-  });
-  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; type?: 'info' | 'success' | 'warning' | 'error' }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info'
-  });
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -80,18 +61,18 @@ function App() {
     };
   }, []);
 
-  // Load diagram chat history when diagram is selected
+  // Load project chat history when project is selected
   useEffect(() => {
-    if (currentDiagramObj && !isScratchMode) {
-      loadDiagramChatHistory();
+    if (currentProject && !isScratchMode) {
+      loadProjectChatHistory();
     }
-  }, [currentDiagramObj]);
+  }, [currentProject]);
 
-  const loadDiagramChatHistory = async () => {
-    if (!currentDiagramObj) return;
+  const loadProjectChatHistory = async () => {
+    if (!currentProject) return;
 
     try {
-      const chatMessages = await getDiagramChatHistory(currentDiagramObj.id);
+      const chatMessages = await getProjectChatHistory(currentProject.id);
       setMessages(chatMessages.map(msg => ({ role: msg.role, content: msg.content })));
     } catch (error) {
       console.error('Failed to load chat history:', error);
@@ -125,8 +106,7 @@ function App() {
           `Please review and validate this Mermaid diagram code that was generated from an image. Fix any syntax errors or issues if needed:\n\n\`\`\`mermaid\n${data.diagram}\n\`\`\``,
           messages,
           currentDiagram,
-          currentProject?.id,
-          currentDiagramObj?.id
+          currentProject?.id
         );
 
         if (response.success) {
@@ -209,8 +189,7 @@ function App() {
         prompt,
         messages,
         currentDiagram,
-        currentProject?.id,
-        currentDiagramObj?.id
+        currentProject?.id
       );
 
       if (response.success) {
@@ -242,35 +221,13 @@ function App() {
     }
   };
 
-  const handleSelectProject = async (project: Project | null) => {
+  const handleSelectProject = (project: Project | null) => {
     setCurrentProject(project);
     setIsScratchMode(!project);
     setMessages([]);
     setCurrentDiagram('');
     setCurrentDiagramObj(null);
     setCurrentVersion(null);
-
-    // Load the latest diagram for this project if available
-    if (project) {
-      try {
-        const { listDiagramsByProject } = await import('./services/projectsApi');
-        const diagrams = await listDiagramsByProject(project.id);
-
-        if (diagrams.length > 0) {
-          // Select the most recently updated diagram
-          const latestDiagram = diagrams[0];
-          const fullDiagram = await getDiagram(latestDiagram.id);
-
-          setCurrentDiagramObj(fullDiagram.diagram);
-          if (fullDiagram.latestVersion) {
-            setCurrentVersion(fullDiagram.latestVersion);
-            setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load project diagrams:', error);
-      }
-    }
   };
 
   const handleScratchMode = () => {
@@ -288,47 +245,24 @@ function App() {
       return;
     }
 
-    setPromptModal({
-      isOpen: true,
-      title: 'Create New Project',
-      message: 'Enter project name:',
-      onConfirm: async (projectName) => {
-        if (!projectName) return;
+    const projectName = prompt('Enter project name:');
+    if (!projectName) return;
 
-        setPromptModal({
-          isOpen: true,
-          title: 'Create Diagram',
-          message: 'Enter diagram name:',
-          defaultValue: 'Untitled Diagram',
-          onConfirm: async (diagramName) => {
-            try {
-              const project = await createProject(projectName);
-              const diagram = await createDiagram(project.id, diagramName || 'Untitled Diagram', currentDiagram);
+    try {
+      const project = await createProject(projectName);
+      const diagramName = prompt('Enter diagram name:') || 'Untitled Diagram';
+      const diagram = await createDiagram(project.id, diagramName, currentDiagram);
 
-              setCurrentProject(project);
-              setCurrentDiagramObj(diagram.diagram);
-              setCurrentVersion(diagram.version);
-              setIsScratchMode(false);
+      setCurrentProject(project);
+      setCurrentDiagramObj(diagram.diagram);
+      setCurrentVersion(diagram.version);
+      setIsScratchMode(false);
 
-              setAlertModal({
-                isOpen: true,
-                title: 'Success',
-                message: 'Saved to project successfully!',
-                type: 'success'
-              });
-            } catch (error) {
-              console.error('Failed to save to project:', error);
-              setAlertModal({
-                isOpen: true,
-                title: 'Error',
-                message: 'Failed to save to project',
-                type: 'error'
-              });
-            }
-          }
-        });
-      }
-    });
+      alert('Saved to project successfully!');
+    } catch (error) {
+      console.error('Failed to save to project:', error);
+      alert('Failed to save to project');
+    }
   };
 
   const handleSelectVersion = async (version: DiagramVersion) => {
@@ -344,73 +278,32 @@ function App() {
     );
   }
 
-  // Show welcome page if not authenticated
-  if (!isAuthenticated && !authLoading) {
-    return (
-      <>
-        <WelcomePage onShowAuth={() => setShowAuthModal(true)} />
-        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-      </>
-    );
-  }
-
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 px-8 py-5 shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  DiagramMagic
-                </h1>
-                <p className="text-sm text-gray-600">AI-powered Mermaid diagram generator</p>
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
             </div>
-            {isAuthenticated && (
-              <ProjectSelector
-                currentProject={currentProject}
-                onSelectProject={handleSelectProject}
-                isScratchMode={isScratchMode}
-                onScratchMode={handleScratchMode}
-              />
-            )}
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                DiagramMagic
+              </h1>
+              <p className="text-sm text-gray-600">AI-powered Mermaid diagram generator</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">{user?.name[0].toUpperCase()}</span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">{user?.name}</span>
-                </div>
-                <button
-                  onClick={logout}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
-                  title="Sign Out"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  <span className="text-sm font-medium">Sign Out</span>
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Sign In
-              </button>
-            )}
-          </div>
+          {!isAuthenticated && (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </header>
 
@@ -422,36 +315,13 @@ function App() {
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Diagrams Sidebar - Left */}
-        {isAuthenticated && !isScratchMode && currentProject && (
-          <DiagramsSidebar
-            projectId={currentProject.id}
-            currentDiagram={currentDiagramObj}
-            onSelectDiagram={async (diagram) => {
-              if (!diagram) {
-                setCurrentDiagramObj(null);
-                setCurrentVersion(null);
-                setCurrentDiagram('');
-                return;
-              }
-
-              setCurrentDiagramObj(diagram);
-
-              // Load full diagram with versions
-              const fullDiagram = await getDiagram(diagram.id);
-              if (fullDiagram.latestVersion) {
-                setCurrentVersion(fullDiagram.latestVersion);
-                setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
-              }
-            }}
-            onCreateDiagram={async (name) => {
-              // Create a blank diagram with fresh chat
-              const result = await createDiagram(currentProject.id, name, '');
-              setCurrentDiagramObj(result.diagram);
-              setCurrentVersion(result.version);
-              setCurrentDiagram('');
-              setMessages([]); // Clear chat for new diagram
-            }}
+        {/* Projects Sidebar */}
+        {isAuthenticated && (
+          <ProjectsSidebar
+            currentProject={currentProject}
+            onSelectProject={handleSelectProject}
+            onScratchMode={handleScratchMode}
+            isScratchMode={isScratchMode}
           />
         )}
 
@@ -502,25 +372,6 @@ function App() {
 
       {/* Auth Modal */}
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
-
-      {/* Prompt Modal */}
-      <PromptModal
-        isOpen={promptModal.isOpen}
-        onClose={() => setPromptModal({ ...promptModal, isOpen: false })}
-        onConfirm={promptModal.onConfirm}
-        title={promptModal.title}
-        message={promptModal.message}
-        defaultValue={promptModal.defaultValue}
-      />
-
-      {/* Alert Modal */}
-      <AlertModal
-        isOpen={alertModal.isOpen}
-        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
-        title={alertModal.title}
-        message={alertModal.message}
-        type={alertModal.type}
-      />
     </div>
   );
 }

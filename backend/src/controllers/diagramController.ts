@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ReactAgent } from '../services/reactAgent.js';
 import { DiagramRequest } from '../types/index.js';
 import { Server } from 'socket.io';
+import { db } from '../database/connection.js';
 
 export class DiagramController {
   private agent: ReactAgent;
@@ -16,7 +17,7 @@ export class DiagramController {
 
   async generateDiagram(req: Request, res: Response): Promise<void> {
     try {
-      const { prompt, chatHistory, currentDiagram }: DiagramRequest = req.body;
+      const { prompt, chatHistory, currentDiagram, projectId, diagramId }: DiagramRequest & { projectId?: number; diagramId?: number } = req.body;
 
       if (!prompt) {
         res.status(400).json({ error: 'Prompt is required' });
@@ -28,6 +29,36 @@ export class DiagramController {
         chatHistory || [],
         currentDiagram
       );
+
+      // If projectId and diagramId are provided and user is authenticated, save chat messages
+      if (projectId && diagramId && req.user) {
+        try {
+          // Save user message
+          await db
+            .insertInto('chat_messages')
+            .values({
+              project_id: projectId,
+              diagram_id: diagramId,
+              role: 'user',
+              content: prompt,
+            })
+            .execute();
+
+          // Save assistant message
+          await db
+            .insertInto('chat_messages')
+            .values({
+              project_id: projectId,
+              diagram_id: diagramId,
+              role: 'assistant',
+              content: result.chatAnswer,
+            })
+            .execute();
+        } catch (dbError) {
+          console.error('Failed to save chat messages:', dbError);
+          // Don't fail the request if database save fails
+        }
+      }
 
       res.json(result);
     } catch (error) {

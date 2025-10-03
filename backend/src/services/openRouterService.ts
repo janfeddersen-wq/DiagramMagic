@@ -71,14 +71,63 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
         });
 
         const text = response.choices[0]?.message?.content || '';
+        console.log(`OpenRouter raw response (attempt ${attempt}):`, text.substring(0, 500));
 
-        // Parse the JSON response
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error('Failed to parse OpenRouter response - no JSON found in output');
+        // Parse the JSON response - try multiple extraction methods
+        let parsed: any = null;
+
+        // Method 1: Try to find properly balanced JSON object
+        const jsonStart = text.indexOf('{');
+        if (jsonStart !== -1) {
+          let braceCount = 0;
+          let jsonEnd = jsonStart;
+
+          for (let i = jsonStart; i < text.length; i++) {
+            if (text[i] === '{') braceCount++;
+            if (text[i] === '}') braceCount--;
+            if (braceCount === 0) {
+              jsonEnd = i + 1;
+              break;
+            }
+          }
+
+          if (jsonEnd > jsonStart) {
+            try {
+              const jsonStr = text.substring(jsonStart, jsonEnd);
+              parsed = JSON.parse(jsonStr);
+            } catch (e) {
+              console.error('Method 1 failed (balanced braces):', e);
+            }
+          }
         }
 
-        const parsed = JSON.parse(jsonMatch[0]);
+        // Method 2: If Method 1 failed, try extracting with code blocks
+        if (!parsed) {
+          const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+          if (codeBlockMatch) {
+            try {
+              parsed = JSON.parse(codeBlockMatch[1]);
+            } catch (e) {
+              console.error('Method 2 failed (code block):', e);
+            }
+          }
+        }
+
+        // Method 3: Last resort - original greedy regex but with better error handling
+        if (!parsed) {
+          const jsonMatch = text.match(/\{[\s\S]*?\}/);
+          if (jsonMatch) {
+            try {
+              parsed = JSON.parse(jsonMatch[0]);
+            } catch (e) {
+              console.error('Method 3 failed (greedy regex):', e);
+            }
+          }
+        }
+
+        if (!parsed) {
+          throw new Error('Failed to parse OpenRouter response - no valid JSON found in output');
+        }
 
         return {
           diagram: parsed.mermaidDiagram || '',

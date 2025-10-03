@@ -34,12 +34,19 @@ const cerebrasModel = process.env.CEREBRAS_MODEL || 'llama3.1-8b';
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 const imageService = process.env.IMAGE_SERVICE as 'gemini' | 'openrouter' | undefined;
+const speechService = process.env.SPEECH_SERVICE as 'gemini' | undefined;
 const openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-4-scout:free';
 
 if (!geminiApiKey && !openRouterApiKey) {
   console.warn('Warning: Neither GEMINI_API_KEY nor OPENROUTER_API_KEY is set. Image-to-diagram conversion will not be available.');
 } else {
   console.log(`Image service configured: ${imageService || (geminiApiKey ? 'gemini' : 'openrouter')}`);
+}
+
+if (speechService === 'gemini' && !geminiApiKey) {
+  console.warn('Warning: SPEECH_SERVICE is set to gemini but GEMINI_API_KEY is not set. Speech-to-text will not be available.');
+} else if (speechService === 'gemini') {
+  console.log(`Speech service configured: gemini`);
 }
 
 // Configure multer for file uploads
@@ -59,7 +66,7 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedExtensions = ['.docx', '.xlsx', '.xls', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
+    const allowedExtensions = ['.docx', '.xlsx', '.xls', '.csv', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.webm', '.mp3', '.wav', '.ogg', '.m4a'];
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedExtensions.includes(ext)) {
       cb(null, true);
@@ -76,7 +83,8 @@ app.use(express.json());
 // Initialize controllers
 const diagramController = new DiagramController(process.env.CEREBRAS_API_KEY, cerebrasModel, io);
 const fileController = new FileController({
-  imageService,
+  imageService: imageService || (geminiApiKey ? 'gemini' : openRouterApiKey ? 'openrouter' : undefined),
+  speechService: speechService || (geminiApiKey ? 'gemini' : undefined),
   geminiApiKey,
   openRouterApiKey,
   openRouterModel
@@ -124,6 +132,7 @@ app.get('/api/diagrams/:id/versions', authenticateToken, (req, res) => diagramsC
 // Existing routes (now with optional auth for backward compatibility)
 app.post('/api/generate', optionalAuth, (req, res) => diagramController.generateDiagram(req, res));
 app.post('/api/upload', upload.single('file'), optionalAuth, (req, res) => fileController.uploadFile(req, res));
+app.post('/api/transcribe', upload.single('audio'), (req, res) => fileController.transcribeAudio(req, res));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

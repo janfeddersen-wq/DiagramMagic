@@ -166,7 +166,7 @@ When responding, you MUST return a JSON object with this exact structure:
 Rules for Mermaid diagrams:
 - Always include the diagram type (graph, flowchart, sequenceDiagram, etc.)
 - Use proper Mermaid syntax
-- Make diagrams clear and well-structured
+- Make diagrams clear and well-structured, with logical color scheme
 - For flowcharts, use "flowchart TD" or "graph TD" syntax
 - Ensure all nodes and connections are properly defined
 - IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.

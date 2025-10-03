@@ -141,4 +141,38 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
 
     throw new Error(`Failed to convert image to diagram after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
   }
+
+  /**
+   * Transcribe audio to text using Gemini
+   */
+  async transcribeAudio(audioPath: string, mimeType: string): Promise<string> {
+    try {
+      console.log('Gemini audio transcription started');
+
+      // Read the audio file
+      const audioBuffer = await fs.readFile(audioPath);
+      const audioBase64 = audioBuffer.toString('base64');
+
+      const prompt = `Transcribe the following audio to text. Return only the transcribed text without any additional formatting or explanation.`;
+
+      const result = await this.model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: audioBase64,
+            mimeType: mimeType
+          }
+        }
+      ]);
+
+      const response = await result.response;
+      const text = response.text().trim();
+      console.log('Gemini transcription result:', text);
+
+      return text;
+    } catch (error) {
+      console.error('Gemini transcription error:', error);
+      throw new Error(`Failed to transcribe audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }

@@ -7,9 +7,11 @@ import fs from 'fs/promises';
 
 export class FileController {
   private imageService: ImageToMermaidService | null = null;
+  private speechService: GeminiService | null = null;
 
   constructor(config?: {
     imageService?: 'gemini' | 'openrouter';
+    speechService?: 'gemini';
     geminiApiKey?: string;
     openRouterApiKey?: string;
     openRouterModel?: string;
@@ -25,6 +27,11 @@ export class FileController {
     } else if (config?.geminiApiKey) {
       // Fallback to Gemini if only geminiApiKey is provided (backward compatibility)
       this.imageService = new GeminiService(config.geminiApiKey);
+    }
+
+    // Initialize speech service separately
+    if (config?.speechService === 'gemini' && config.geminiApiKey) {
+      this.speechService = new GeminiService(config.geminiApiKey);
     }
   }
 
@@ -139,6 +146,39 @@ export class FileController {
       console.error('Sheet selection error:', error);
       return res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to select sheet'
+      });
+    }
+  }
+
+  async transcribeAudio(req: Request, res: Response) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No audio file uploaded' });
+      }
+
+      const file = req.file;
+
+      // Check if speech service is available
+      if (!this.speechService) {
+        return res.status(500).json({ error: 'Speech service not configured. Please set SPEECH_SERVICE=gemini and GEMINI_API_KEY in environment variables.' });
+      }
+
+      try {
+        const text = await this.speechService.transcribeAudio(file.path, file.mimetype);
+
+        // Clean up the uploaded file
+        await fs.unlink(file.path);
+
+        return res.json({ text });
+      } catch (error) {
+        // Clean up the uploaded file
+        await fs.unlink(file.path);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Audio transcription error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to transcribe audio'
       });
     }
   }

@@ -15,7 +15,9 @@ export function ProjectSelector({ currentProject, onSelectProject, isScratchMode
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<{ isOpen: boolean; projectId: number | null }>({ isOpen: false, projectId: null });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     loadProjects();
@@ -74,10 +76,22 @@ export function ProjectSelector({ currentProject, onSelectProject, isScratchMode
     }
   };
 
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left
+      });
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
       >
         <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +111,10 @@ export function ProjectSelector({ currentProject, onSelectProject, isScratchMode
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-96 overflow-hidden flex flex-col">
+        <div
+          className="fixed w-72 bg-white border border-gray-200 rounded-lg shadow-2xl z-[9999] max-h-96 overflow-hidden flex flex-col"
+          style={{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }}
+        >
           {/* Scratch Mode Option */}
           <button
             onClick={() => {
@@ -190,7 +207,8 @@ export function ProjectSelector({ currentProject, onSelectProject, isScratchMode
                       </div>
                       <button
                         onClick={(e) => handleDeleteProject(project.id, e)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition-all"
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                        title="Delete project"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

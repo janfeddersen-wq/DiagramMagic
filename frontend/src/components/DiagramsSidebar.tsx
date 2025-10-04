@@ -7,9 +7,10 @@ interface DiagramsSidebarProps {
   currentDiagram: Diagram | null;
   onSelectDiagram: (diagram: Diagram | null) => void;
   onCreateDiagram?: (name: string) => Promise<void>;
+  refreshTrigger?: number; // Increment this to trigger a refresh
 }
 
-export function DiagramsSidebar({ projectId, currentDiagram, onSelectDiagram, onCreateDiagram }: DiagramsSidebarProps) {
+export function DiagramsSidebar({ projectId, currentDiagram, onSelectDiagram, onCreateDiagram, refreshTrigger }: DiagramsSidebarProps) {
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [newDiagramName, setNewDiagramName] = useState('');
@@ -23,6 +24,13 @@ export function DiagramsSidebar({ projectId, currentDiagram, onSelectDiagram, on
       setDiagrams([]);
     }
   }, [projectId]);
+
+  // Refresh diagrams when trigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined && projectId) {
+      loadDiagrams();
+    }
+  }, [refreshTrigger]);
 
   const loadDiagrams = async () => {
     if (!projectId) return;

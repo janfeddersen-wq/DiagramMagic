@@ -25,6 +25,8 @@ function App() {
   const socketRef = useRef<Socket | null>(null);
   const currentValidationRequestRef = useRef<string | null>(null);
   const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
+  const [projectsRefreshTrigger, setProjectsRefreshTrigger] = useState(0);
+  const [diagramsRefreshTrigger, setDiagramsRefreshTrigger] = useState(0);
 
   // Custom hooks for state management
   const project = useProject();
@@ -197,6 +199,7 @@ function App() {
                 onSelectProject={handleSelectProject}
                 isScratchMode={project.isScratchMode}
                 onScratchMode={handleScratchMode}
+                refreshTrigger={projectsRefreshTrigger}
               />
             )}
           </div>
@@ -255,6 +258,7 @@ function App() {
               diagram.setDiagramState(result.diagram, result.version, '');
               chat.clearChat();
             }}
+            refreshTrigger={diagramsRefreshTrigger}
           />
         )}
 
@@ -337,6 +341,7 @@ function App() {
           }
           const newProject = await createProject(name);
           await handleSelectProject(newProject);
+          setProjectsRefreshTrigger(prev => prev + 1); // Trigger refresh
         }}
         onListProjects={() => {
           // This will be handled by the agent returning the list to speak
@@ -359,8 +364,9 @@ function App() {
             modals.openAlert('Please select a project first', 'error');
             return;
           }
-          const newDiagram = await createDiagram(project.currentProject.id, name);
+          const newDiagram = await createDiagram(project.currentProject.id, name, 'graph TD\n  Start[Start]');
           await diagram.loadDiagram(newDiagram.id);
+          setDiagramsRefreshTrigger(prev => prev + 1); // Trigger refresh
         }}
         onTalkToDiagram={(message) => {
           chat.sendMessage(message);

@@ -10,7 +10,7 @@ interface ProjectSelectorProps {
   refreshTrigger?: number; // Increment this to trigger a refresh
 }
 
-export function ProjectSelector({ currentProject, onSelectProject, isScratchMode, onScratchMode }: ProjectSelectorProps) {
+export function ProjectSelector({ currentProject, onSelectProject, isScratchMode, onScratchMode, refreshTrigger }: ProjectSelectorProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -33,6 +33,13 @@ export function ProjectSelector({ currentProject, onSelectProject, isScratchMode
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Refresh projects when trigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      loadProjects();
+    }
+  }, [refreshTrigger]);
 
   const loadProjects = async () => {
     try {

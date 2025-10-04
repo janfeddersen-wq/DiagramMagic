@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { MermaidDiagram } from './components/MermaidDiagram';
 import { ChatPanel } from './components/ChatPanel';
@@ -10,6 +10,8 @@ import { ScratchModeWarning } from './components/ScratchModeWarning';
 import { AuthModal } from './components/AuthModal';
 import { WelcomePage } from './components/WelcomePage';
 import { PromptModal, AlertModal } from './components/Modal';
+import { VoiceAgentButton } from './components/VoiceAgentButton';
+import { VoiceAgentModal } from './components/VoiceAgentModal';
 import { useAuth } from './contexts/AuthContext';
 import { RenderValidationRequest, RenderValidationResponse } from './types';
 import { createProject, createDiagram } from './services/projectsApi';
@@ -22,6 +24,7 @@ function App() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const currentValidationRequestRef = useRef<string | null>(null);
+  const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
 
   // Custom hooks for state management
   const project = useProject();
@@ -147,6 +150,10 @@ function App() {
     diagram.updateDiagram('', project.isScratchMode);
   };
 
+  const handleVoiceAgentToggle = (isActive: boolean) => {
+    setVoiceAgentOpen(isActive);
+  };
+
   if (authLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -196,6 +203,10 @@ function App() {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
+                <VoiceAgentButton
+                  onToggle={handleVoiceAgentToggle}
+                  isActive={voiceAgentOpen}
+                />
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">{user?.name[0].toUpperCase()}</span>
@@ -312,6 +323,12 @@ function App() {
         title={modals.alertModal.title}
         message={modals.alertModal.message}
         type={modals.alertModal.type}
+      />
+
+      {/* Voice Agent Modal */}
+      <VoiceAgentModal
+        isOpen={voiceAgentOpen}
+        onClose={() => setVoiceAgentOpen(false)}
       />
     </div>
   );

@@ -30,3 +30,58 @@ code {
   width: auto;
   height: auto;
 }
+
+/* Voice Agent Button Styles */
+.voice-agent-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+
+.voice-agent-button:hover {
+  opacity: 0.8;
+}
+
+.voice-agent-container {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.voice-agent-icon {
+  width: 24px;
+  height: 24px;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+/* Active state with pulsing red animation */
+.voice-agent-container.pulsing {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  animation: pulse-red 2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+}
+
+.voice-agent-container.pulsing .voice-agent-icon {
+  color: #dc2626;
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}

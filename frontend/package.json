@@ -8,7 +8,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.15",
+    "@livekit/components-styles": "^1.1.6",
     "axios": "^1.6.2",
+    "livekit-client": "^2.15.8",
     "mermaid": "^10.6.1",
     "panzoom": "^9.4.3",
     "react": "^18.2.0",

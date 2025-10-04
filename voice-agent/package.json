@@ -1,0 +1,29 @@
+{
+  "name": "diagrammagic-voice-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts dev",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "server": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@livekit/agents": "^1.0.8",
+    "@livekit/agents-plugin-cartesia": "^1.0.8",
+    "@livekit/agents-plugin-deepgram": "^1.0.8",
+    "@livekit/agents-plugin-openai": "^1.0.8",
+    "@livekit/agents-plugin-silero": "^1.0.8",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "livekit-server-sdk": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

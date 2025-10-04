@@ -330,6 +330,41 @@ function App() {
         isOpen={voiceAgentOpen}
         onClose={() => setVoiceAgentOpen(false)}
         socket={socketRef.current || undefined}
+        onAddProject={async (name) => {
+          if (!isAuthenticated) {
+            modals.openAuthModal();
+            return;
+          }
+          const newProject = await createProject(name);
+          await handleSelectProject(newProject);
+        }}
+        onListProjects={() => {
+          // This will be handled by the agent returning the list to speak
+          // The UI doesn't need to do anything special
+        }}
+        onSelectProject={async (projectId) => {
+          if (!isAuthenticated) {
+            modals.openAuthModal();
+            return;
+          }
+          const { getProject } = await import('./services/projectsApi');
+          const projectToSelect = await getProject(projectId);
+          await handleSelectProject(projectToSelect);
+        }}
+        onSwitchToScratchMode={() => {
+          handleScratchMode();
+        }}
+        onCreateDiagram={async (name) => {
+          if (!project.currentProject) {
+            modals.openAlert('Please select a project first', 'error');
+            return;
+          }
+          const newDiagram = await createDiagram(project.currentProject.id, name);
+          await diagram.loadDiagram(newDiagram.id);
+        }}
+        onTalkToDiagram={(message) => {
+          chat.sendMessage(message);
+        }}
       />
     </div>
   );

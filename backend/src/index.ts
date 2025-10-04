@@ -160,7 +160,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Voice Agent tool calls endpoint
-app.post('/api/voice-agent/tool-call', (req, res) => {
+app.post('/api/voice-agent/tool-call', async (req, res) => {
   console.log('🎯 [BACKEND] Received voice agent tool call');
   console.log('🎯 [BACKEND] Request body:', req.body);
 
@@ -189,7 +189,34 @@ app.post('/api/voice-agent/tool-call', (req, res) => {
     return res.status(404).json({ error: 'Client disconnected' });
   }
 
-  // Emit event to the specific client's UI
+  // Handle ListProjects specially - return data for the agent to speak
+  if (toolName === 'ListProjects') {
+    try {
+      // @ts-ignore - socket.data is added by our auth middleware
+      const userId = socket.data?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+
+      const projects = await db
+        .selectFrom('projects')
+        .selectAll()
+        .where('user_id', '=', userId)
+        .orderBy('updated_at', 'desc')
+        .execute();
+
+      // Return projects list for the agent to speak
+      return res.json({
+        success: true,
+        projects: projects.map(p => ({ id: p.id, name: p.name }))
+      });
+    } catch (error) {
+      console.error('🎯 [BACKEND] Error listing projects:', error);
+      return res.status(500).json({ error: 'Failed to list projects' });
+    }
+  }
+
+  // Emit event to the specific client's UI for other tools
   const eventName = `voice-agent:${toolName}`;
   console.log('🎯 [BACKEND] Emitting event:', eventName, 'to socket:', socketId);
   console.log('🎯 [BACKEND] Event params:', params);

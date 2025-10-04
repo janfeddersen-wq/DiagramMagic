@@ -7,6 +7,12 @@ interface VoiceAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
   socket?: Socket; // Main app Socket.IO instance
+  onAddProject?: (name: string) => void;
+  onListProjects?: () => void;
+  onSelectProject?: (projectId: number) => void;
+  onSwitchToScratchMode?: () => void;
+  onCreateDiagram?: (name: string) => void;
+  onTalkToDiagram?: (message: string) => void;
 }
 
 function VoiceAssistantStatus() {
@@ -41,14 +47,23 @@ function VoiceAssistantStatus() {
   );
 }
 
-export function VoiceAgentModal({ isOpen, onClose, socket }: VoiceAgentModalProps) {
+export function VoiceAgentModal({
+  isOpen,
+  onClose,
+  socket,
+  onAddProject,
+  onListProjects,
+  onSelectProject,
+  onSwitchToScratchMode,
+  onCreateDiagram,
+  onTalkToDiagram
+}: VoiceAgentModalProps) {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [token, setToken] = useState('');
   const [serverUrl, setServerUrl] = useState('');
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && !connected) {
@@ -56,34 +71,53 @@ export function VoiceAgentModal({ isOpen, onClose, socket }: VoiceAgentModalProp
     }
   }, [isOpen]);
 
-  // Register API key with backend Socket.IO
+  // Register API key with backend Socket.IO and listen for voice agent events
   useEffect(() => {
     if (apiKey && socket) {
       console.log('✨ [UI] Registering voice agent API key...');
-      console.log('✨ [UI] API Key:', apiKey.substring(0, 10) + '...');
-      console.log('✨ [UI] Socket ID:', socket.id);
       socket.emit('voice-agent:register', apiKey);
-      console.log('✨ [UI] Registration event emitted');
 
-      // Listen for OpenPopover events
-      socket.on('voice-agent:OpenPopover', (params) => {
-        console.log('✅ [UI] OpenPopover event received!');
-        console.log('✅ [UI] Params:', params);
-        setPopoverOpen(true);
-        setTimeout(() => setPopoverOpen(false), 5000); // Auto-close after 5s
+      // Listen for all voice agent tool events
+      socket.on('voice-agent:AddProject', (params) => {
+        console.log('✅ [UI] AddProject event:', params);
+        if (onAddProject) onAddProject(params.name);
       });
 
-      console.log('✨ [UI] Listening for voice-agent:OpenPopover events');
+      socket.on('voice-agent:ListProjects', () => {
+        console.log('✅ [UI] ListProjects event');
+        if (onListProjects) onListProjects();
+      });
+
+      socket.on('voice-agent:SelectProject', (params) => {
+        console.log('✅ [UI] SelectProject event:', params);
+        if (onSelectProject) onSelectProject(params.projectId);
+      });
+
+      socket.on('voice-agent:SwitchToScratchMode', () => {
+        console.log('✅ [UI] SwitchToScratchMode event');
+        if (onSwitchToScratchMode) onSwitchToScratchMode();
+      });
+
+      socket.on('voice-agent:CreateDiagram', (params) => {
+        console.log('✅ [UI] CreateDiagram event:', params);
+        if (onCreateDiagram) onCreateDiagram(params.name);
+      });
+
+      socket.on('voice-agent:TalkToDiagram', (params) => {
+        console.log('✅ [UI] TalkToDiagram event:', params);
+        if (onTalkToDiagram) onTalkToDiagram(params.message);
+      });
 
       return () => {
-        console.log('✨ [UI] Cleaning up OpenPopover listener');
-        socket.off('voice-agent:OpenPopover');
+        socket.off('voice-agent:AddProject');
+        socket.off('voice-agent:ListProjects');
+        socket.off('voice-agent:SelectProject');
+        socket.off('voice-agent:SwitchToScratchMode');
+        socket.off('voice-agent:CreateDiagram');
+        socket.off('voice-agent:TalkToDiagram');
       };
-    } else {
-      if (!apiKey) console.log('✨ [UI] Waiting for API key...');
-      if (!socket) console.log('✨ [UI] Waiting for socket connection...');
     }
-  }, [apiKey, socket]);
+  }, [apiKey, socket, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onTalkToDiagram]);
 
   const fetchToken = async () => {
     try {
@@ -179,26 +213,15 @@ export function VoiceAgentModal({ isOpen, onClose, socket }: VoiceAgentModalProp
             <VoiceAssistantStatus />
 
             <div className="mt-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">Try asking:</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">Try voice commands:</h3>
               <ul className="text-sm text-gray-700 space-y-1">
-                <li>• "What is 25 plus 17?"</li>
-                <li>• "Calculate 144 divided by 12"</li>
-                <li>• "Open a popover" (test tool call)</li>
+                <li>• "Create a project called My Project"</li>
+                <li>• "List my projects"</li>
+                <li>• "Switch to scratch mode"</li>
+                <li>• "Create a diagram called My Diagram"</li>
+                <li>• "Generate a flowchart showing user login"</li>
               </ul>
             </div>
-
-            {/* Test Popover */}
-            {popoverOpen && (
-              <div className="mt-4 bg-green-50 border-2 border-green-500 rounded-lg p-4 animate-bounce">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <p className="font-semibold text-green-900">Popover Triggered!</p>
-                </div>
-                <p className="text-sm text-green-700 mt-1">The voice agent successfully triggered a UI action!</p>
-              </div>
-            )}
 
             <button
               onClick={handleDisconnect}

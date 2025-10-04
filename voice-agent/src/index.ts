@@ -13,64 +13,6 @@ import { fileURLToPath } from 'url';
 // Backend URL for tool calls
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 
-// Calculator tool using llm.tool() - proper LiveKit agents-js API
-const calculatorTool = llm.tool({
-  description: 'Perform basic arithmetic operations (add, subtract, multiply, divide)',
-  parameters: {
-    type: 'object',
-    properties: {
-      operation: {
-        type: 'string',
-        enum: ['add', 'subtract', 'multiply', 'divide'],
-        description: 'The arithmetic operation to perform',
-      },
-      a: {
-        type: 'number',
-        description: 'First number',
-      },
-      b: {
-        type: 'number',
-        description: 'Second number',
-      },
-    },
-    required: ['operation', 'a', 'b'],
-  },
-  execute: async (args: any) => {
-    console.log('🔧🔧🔧 [TOOL] ===== CALCULATOR EXECUTE CALLED =====');
-    console.log('🔧 [TOOL] Raw args:', args);
-    const { operation, a, b } = args;
-    let result: number;
-
-    switch (operation) {
-      case 'add':
-        result = a + b;
-        break;
-      case 'subtract':
-        result = a - b;
-        break;
-      case 'multiply':
-        result = a * b;
-        break;
-      case 'divide':
-        if (b === 0) {
-          return JSON.stringify({ error: 'Cannot divide by zero' });
-        }
-        result = a / b;
-        break;
-      default:
-        return JSON.stringify({ error: 'Invalid operation' });
-    }
-
-    return JSON.stringify({
-      operation,
-      a,
-      b,
-      result,
-      message: `${a} ${operation} ${b} = ${result}`,
-    });
-  },
-});
-
 // Helper function to call backend with API key
 async function callBackendTool(apiKey: string, toolName: string, params: any = {}): Promise<any> {
   console.log(`📡 [BACKEND CALL] Starting call to ${toolName}`);
@@ -108,41 +50,165 @@ async function callBackendTool(apiKey: string, toolName: string, params: any = {
   }
 }
 
-// OpenPopover tool factory - creates tool with captured API key
-function createOpenPopoverTool(apiKey: string) {
+// UI Control Tools - Factory functions that create tools with captured API key
+
+function createAddProjectTool(apiKey: string) {
   return llm.tool({
-    description: 'Open a popover notification in the user interface to display important information',
+    description: 'Create a new project with the specified name',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'The name of the new project',
+        },
+      },
+      required: ['name'],
+    },
+    execute: async (args: any) => {
+      console.log('🔧 [TOOL] AddProject called with:', args);
+      const { name } = args;
+      try {
+        const result = await callBackendTool(apiKey, 'AddProject', { name });
+        return JSON.stringify({ success: true, message: `Project "${name}" created successfully` });
+      } catch (error) {
+        console.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createListProjectsTool(apiKey: string) {
+  return llm.tool({
+    description: 'List all available projects for the user',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      console.log('🔧 [TOOL] ListProjects called');
+      try {
+        const result = await callBackendTool(apiKey, 'ListProjects', {});
+        // Format projects for the agent to speak
+        if (result.projects && result.projects.length > 0) {
+          const projectList = result.projects.map((p: any) => `Project ID ${p.id}: ${p.name}`).join('. ');
+          return JSON.stringify({
+            success: true,
+            message: `You have ${result.projects.length} projects: ${projectList}`,
+            projects: result.projects
+          });
+        } else {
+          return JSON.stringify({
+            success: true,
+            message: 'You have no projects yet. Would you like to create one?',
+            projects: []
+          });
+        }
+      } catch (error) {
+        console.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createSelectProjectTool(apiKey: string) {
+  return llm.tool({
+    description: 'Switch to a specific project by ID or name',
+    parameters: {
+      type: 'object',
+      properties: {
+        projectId: {
+          type: 'number',
+          description: 'The ID of the project to switch to',
+        },
+      },
+      required: ['projectId'],
+    },
+    execute: async (args: any) => {
+      console.log('🔧 [TOOL] SelectProject called with:', args);
+      const { projectId } = args;
+      try {
+        const result = await callBackendTool(apiKey, 'SelectProject', { projectId });
+        return JSON.stringify({ success: true, message: `Switched to project ${projectId}` });
+      } catch (error) {
+        console.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createSwitchToScratchModeTool(apiKey: string) {
+  return llm.tool({
+    description: 'Switch to scratch mode (temporary work without saving to a project)',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      console.log('🔧 [TOOL] SwitchToScratchMode called');
+      try {
+        const result = await callBackendTool(apiKey, 'SwitchToScratchMode', {});
+        return JSON.stringify({ success: true, message: 'Switched to scratch mode' });
+      } catch (error) {
+        console.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createCreateDiagramTool(apiKey: string) {
+  return llm.tool({
+    description: 'Create a new diagram in the current project with the specified name',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+          description: 'The name of the new diagram',
+        },
+      },
+      required: ['name'],
+    },
+    execute: async (args: any) => {
+      console.log('🔧 [TOOL] CreateDiagram called with:', args);
+      const { name } = args;
+      try {
+        const result = await callBackendTool(apiKey, 'CreateDiagram', { name });
+        return JSON.stringify({ success: true, message: `Diagram "${name}" created successfully` });
+      } catch (error) {
+        console.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createTalkToDiagramTool(apiKey: string) {
+  return llm.tool({
+    description: 'Send a message to the diagram AI chat assistant to generate or modify diagrams',
     parameters: {
       type: 'object',
       properties: {
         message: {
           type: 'string',
-          description: 'Optional message to display in the popover',
+          description: 'The message to send to the diagram AI',
         },
       },
+      required: ['message'],
     },
     execute: async (args: any) => {
-      console.log('🔧🔧🔧 [TOOL] ===== OPENPOPOVER EXECUTE CALLED =====');
-      console.log('🔧 [TOOL] Raw args:', args);
+      console.log('🔧 [TOOL] TalkToDiagram called with:', args);
       const { message } = args;
-      console.log('🔧 [TOOL] OpenPopover called with message:', message);
-      console.log('🔧 [TOOL] Using API key:', apiKey.substring(0, 10) + '...');
-
       try {
-        console.log('🔧 [TOOL] Calling backend tool...');
-        const result = await callBackendTool(apiKey, 'OpenPopover', { message });
-        console.log('🔧 [TOOL] Backend response:', result);
-
-        return JSON.stringify({
-          success: true,
-          message: 'Popover opened successfully',
-        });
+        const result = await callBackendTool(apiKey, 'TalkToDiagram', { message });
+        return JSON.stringify({ success: true, message: 'Message sent to diagram AI' });
       } catch (error) {
         console.error('🔧 [TOOL] Error:', error);
-        return JSON.stringify({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
   });
@@ -231,17 +297,31 @@ export default defineAgent({
     const vad = await VAD.load();
 
     // System instructions
-    const instructions = `You are DiagramMagic's AI voice assistant.
+    const instructions = `You are DiagramMagic's AI voice assistant. You help users control the DiagramMagic application using voice commands.
 
-    IMPORTANT: You have access to tools that you MUST use when appropriate:
-    - calculator: Use this tool for ANY mathematical calculations. DO NOT try to calculate yourself.
-    - OpenPopover: Use this tool when the user asks to open a popover, show a notification, or display something in the UI.
+    IMPORTANT: You have access to these UI control tools:
+    - AddProject: ONLY when explicitly asked to "create a project" or "add a project"
+    - ListProjects: ONLY when explicitly asked to "list projects" or "show my projects"
+    - SelectProject: ONLY when explicitly asked to "switch to project" or "open project" (requires project ID)
+    - SwitchToScratchMode: ONLY when explicitly asked to "switch to scratch mode"
+    - CreateDiagram: ONLY when explicitly asked to "create a diagram" or "add a diagram" (requires diagram name)
+    - TalkToDiagram: Use this for EVERYTHING ELSE - any request about creating, modifying, or generating diagrams
 
-    You can also help users with:
-    - Answering questions about diagram generation
-    - Explaining Mermaid diagram syntax
+    DEFAULT BEHAVIOR:
+    If the user asks about diagrams, flowcharts, sequence diagrams, or any visualization WITHOUT explicitly asking to create/switch projects or diagrams, ALWAYS use TalkToDiagram to send their message to the diagram AI.
 
-    CRITICAL: When a user asks you to use a tool (like opening a popover or doing math), you MUST actually call the tool function. Never just say you did something - actually do it by calling the tool.
+    Examples:
+    - "Create a flowchart for login" → TalkToDiagram (not CreateDiagram!)
+    - "Show me a sequence diagram" → TalkToDiagram
+    - "Add error handling to the diagram" → TalkToDiagram
+    - "Create a project called MyApp" → AddProject
+    - "Create a diagram called UserFlow" → CreateDiagram (explicit diagram creation)
+
+    WORKFLOW for switching projects:
+    1. First call ListProjects to show available projects
+    2. Then call SelectProject with the project ID the user chooses
+
+    CRITICAL: When a user asks you to perform an action, you MUST actually call the corresponding tool function. Never just say you did something - actually do it by calling the tool.
 
     Always be friendly and concise in your responses.
     All text you return will be spoken aloud, so don't use bullets or non-pronounceable punctuation.`;
@@ -254,8 +334,12 @@ export default defineAgent({
       vad,
       instructions,
       tools: {
-        calculator: calculatorTool,
-        OpenPopover: createOpenPopoverTool(apiKey),
+        AddProject: createAddProjectTool(apiKey),
+        ListProjects: createListProjectsTool(apiKey),
+        SelectProject: createSelectProjectTool(apiKey),
+        SwitchToScratchMode: createSwitchToScratchModeTool(apiKey),
+        CreateDiagram: createCreateDiagramTool(apiKey),
+        TalkToDiagram: createTalkToDiagramTool(apiKey),
       },
     });
 

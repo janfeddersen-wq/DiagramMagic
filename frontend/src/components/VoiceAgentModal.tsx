@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { LiveKitRoom, RoomAudioRenderer, useVoiceAssistant } from '@livekit/components-react';
+import { Socket } from 'socket.io-client';
 import '@livekit/components-styles';
 
 interface VoiceAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  socket?: Socket; // Main app Socket.IO instance
 }
 
 function VoiceAssistantStatus() {
@@ -39,18 +41,49 @@ function VoiceAssistantStatus() {
   );
 }
 
-export function VoiceAgentModal({ isOpen, onClose }: VoiceAgentModalProps) {
+export function VoiceAgentModal({ isOpen, onClose, socket }: VoiceAgentModalProps) {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [token, setToken] = useState('');
   const [serverUrl, setServerUrl] = useState('');
   const [error, setError] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [popoverOpen, setPopoverOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen && !connected) {
       fetchToken();
     }
   }, [isOpen]);
+
+  // Register API key with backend Socket.IO
+  useEffect(() => {
+    if (apiKey && socket) {
+      console.log('✨ [UI] Registering voice agent API key...');
+      console.log('✨ [UI] API Key:', apiKey.substring(0, 10) + '...');
+      console.log('✨ [UI] Socket ID:', socket.id);
+      socket.emit('voice-agent:register', apiKey);
+      console.log('✨ [UI] Registration event emitted');
+
+      // Listen for OpenPopover events
+      socket.on('voice-agent:OpenPopover', (params) => {
+        console.log('✅ [UI] OpenPopover event received!');
+        console.log('✅ [UI] Params:', params);
+        setPopoverOpen(true);
+        setTimeout(() => setPopoverOpen(false), 5000); // Auto-close after 5s
+      });
+
+      console.log('✨ [UI] Listening for voice-agent:OpenPopover events');
+
+      return () => {
+        console.log('✨ [UI] Cleaning up OpenPopover listener');
+        socket.off('voice-agent:OpenPopover');
+      };
+    } else {
+      if (!apiKey) console.log('✨ [UI] Waiting for API key...');
+      if (!socket) console.log('✨ [UI] Waiting for socket connection...');
+    }
+  }, [apiKey, socket]);
 
   const fetchToken = async () => {
     try {
@@ -73,6 +106,7 @@ export function VoiceAgentModal({ isOpen, onClose }: VoiceAgentModalProps) {
       const data = await response.json();
       setToken(data.token);
       setServerUrl(data.url);
+      setApiKey(data.apiKey); // Store API key
       setConnected(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect to voice agent');
@@ -149,9 +183,22 @@ export function VoiceAgentModal({ isOpen, onClose }: VoiceAgentModalProps) {
               <ul className="text-sm text-gray-700 space-y-1">
                 <li>• "What is 25 plus 17?"</li>
                 <li>• "Calculate 144 divided by 12"</li>
-                <li>• "Help me understand Mermaid diagrams"</li>
+                <li>• "Open a popover" (test tool call)</li>
               </ul>
             </div>
+
+            {/* Test Popover */}
+            {popoverOpen && (
+              <div className="mt-4 bg-green-50 border-2 border-green-500 rounded-lg p-4 animate-bounce">
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p className="font-semibold text-green-900">Popover Triggered!</p>
+                </div>
+                <p className="text-sm text-green-700 mt-1">The voice agent successfully triggered a UI action!</p>
+              </div>
+            )}
 
             <button
               onClick={handleDisconnect}

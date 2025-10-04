@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
 import { AccessToken } from 'livekit-server-sdk';
+import crypto from 'crypto';
 
 // Load environment variables
 config({ path: '../backend/.env' });
@@ -11,6 +12,11 @@ const PORT = process.env.VOICE_AGENT_PORT || 3002;
 
 app.use(cors());
 app.use(express.json());
+
+// Generate secure API key
+function generateApiKey(): string {
+  return `va_${crypto.randomBytes(32).toString('hex')}`;
+}
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -30,9 +36,14 @@ app.post('/token', async (req, res) => {
       return res.status(500).json({ error: 'LiveKit credentials not configured' });
     }
 
+    // Generate API key for tool calls
+    const voiceApiKey = generateApiKey();
+
     const token = new AccessToken(apiKey, apiSecret, {
       identity: participantName,
       name: participantName,
+      // Pass API key in metadata so the agent can access it
+      metadata: JSON.stringify({ apiKey: voiceApiKey }),
     });
 
     token.addGrant({
@@ -48,6 +59,7 @@ app.post('/token', async (req, res) => {
       token: jwt,
       url: process.env.LIVEKIT_URL,
       roomName,
+      apiKey: voiceApiKey, // Include API key for UI registration
     });
   } catch (error) {
     console.error('Error generating token:', error);

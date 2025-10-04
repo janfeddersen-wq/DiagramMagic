@@ -93,6 +93,9 @@ const authController = new AuthController();
 const projectsController = new ProjectsController();
 const diagramsController = new DiagramsController();
 
+// Voice Agent API key to Socket mapping
+const voiceAgentApiKeyMap = new Map<string, string>(); // apiKey -> socketId
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -100,8 +103,26 @@ io.on('connection', (socket) => {
   // Set up render validation listeners
   diagramController.setupSocketListeners(socket);
 
+  // Voice Agent API key registration
+  socket.on('voice-agent:register', (apiKey: string) => {
+    console.log('🔑 [SOCKET.IO] Voice agent API key registration received');
+    console.log('🔑 [SOCKET.IO] API Key:', apiKey.substring(0, 10) + '...');
+    console.log('🔑 [SOCKET.IO] Socket ID:', socket.id);
+    voiceAgentApiKeyMap.set(apiKey, socket.id);
+    console.log('🔑 [SOCKET.IO] API key mapped successfully');
+    console.log('🔑 [SOCKET.IO] Total mappings:', voiceAgentApiKeyMap.size);
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+
+    // Clean up API key mapping on disconnect
+    for (const [apiKey, socketId] of voiceAgentApiKeyMap.entries()) {
+      if (socketId === socket.id) {
+        voiceAgentApiKeyMap.delete(apiKey);
+        console.log('Cleaned up voice agent API key');
+      }
+    }
   });
 });
 
@@ -136,6 +157,47 @@ app.post('/api/transcribe', upload.single('audio'), (req, res) => fileController
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Voice Agent tool calls endpoint
+app.post('/api/voice-agent/tool-call', (req, res) => {
+  console.log('🎯 [BACKEND] Received voice agent tool call');
+  console.log('🎯 [BACKEND] Request body:', req.body);
+
+  const { apiKey, toolName, params } = req.body;
+
+  if (!apiKey) {
+    console.error('🎯 [BACKEND] No API key provided');
+    return res.status(401).json({ error: 'API key required' });
+  }
+
+  console.log('🎯 [BACKEND] Looking up API key:', apiKey.substring(0, 10) + '...');
+  console.log('🎯 [BACKEND] Current API key mappings:', Array.from(voiceAgentApiKeyMap.keys()).map(k => k.substring(0, 10) + '...'));
+
+  const socketId = voiceAgentApiKeyMap.get(apiKey);
+  if (!socketId) {
+    console.error('🎯 [BACKEND] API key not found in mappings');
+    return res.status(404).json({ error: 'Session not found or expired' });
+  }
+
+  console.log('🎯 [BACKEND] Found socket ID:', socketId);
+
+  const socket = io.sockets.sockets.get(socketId);
+  if (!socket) {
+    console.error('🎯 [BACKEND] Socket not found for ID:', socketId);
+    voiceAgentApiKeyMap.delete(apiKey); // Clean up stale mapping
+    return res.status(404).json({ error: 'Client disconnected' });
+  }
+
+  // Emit event to the specific client's UI
+  const eventName = `voice-agent:${toolName}`;
+  console.log('🎯 [BACKEND] Emitting event:', eventName, 'to socket:', socketId);
+  console.log('🎯 [BACKEND] Event params:', params);
+
+  socket.emit(eventName, params);
+  console.log('🎯 [BACKEND] Event emitted successfully!');
+
+  res.json({ success: true, message: `${toolName} triggered` });
 });
 
 // Create uploads directory if it doesn't exist

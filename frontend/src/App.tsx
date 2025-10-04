@@ -329,6 +329,7 @@ function App() {
       <VoiceAgentModal
         isOpen={voiceAgentOpen}
         onClose={() => setVoiceAgentOpen(false)}
+        socket={socketRef.current || undefined}
       />
     </div>
   );

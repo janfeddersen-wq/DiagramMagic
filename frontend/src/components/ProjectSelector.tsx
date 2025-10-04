@@ -7,6 +7,7 @@ interface ProjectSelectorProps {
   onSelectProject: (project: Project | null) => void;
   isScratchMode: boolean;
   onScratchMode: () => void;
+  refreshTrigger?: number; // Increment this to trigger a refresh
 }
 
 export function ProjectSelector({ currentProject, onSelectProject, isScratchMode, onScratchMode }: ProjectSelectorProps) {

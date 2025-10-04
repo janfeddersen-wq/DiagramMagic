@@ -214,6 +214,26 @@ function createTalkToDiagramTool(apiKey: string) {
   });
 }
 
+function createStopVoiceChatTool(apiKey: string) {
+  return llm.tool({
+    description: 'Stop the voice chat and close the voice assistant',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      console.log('🔧 [TOOL] StopVoiceChat called');
+      try {
+        const result = await callBackendTool(apiKey, 'StopVoiceChat', {});
+        return JSON.stringify({ success: true, message: 'Goodbye! Voice chat stopped.' });
+      } catch (error) {
+        console.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
 // Define the agent
 export default defineAgent({
   entry: async (ctx) => {
@@ -306,6 +326,7 @@ export default defineAgent({
     - SwitchToScratchMode: ONLY when explicitly asked to "switch to scratch mode"
     - CreateDiagram: ONLY when explicitly asked to "create a diagram" or "add a diagram" (requires diagram name)
     - TalkToDiagram: Use this for EVERYTHING ELSE - any request about creating, modifying, or generating diagrams
+    - StopVoiceChat: ONLY when user says "stop", "goodbye", "close voice chat", or "end conversation"
 
     DEFAULT BEHAVIOR:
     If the user asks about diagrams, flowcharts, sequence diagrams, or any visualization WITHOUT explicitly asking to create/switch projects or diagrams, ALWAYS use TalkToDiagram to send their message to the diagram AI.
@@ -340,6 +361,7 @@ export default defineAgent({
         SwitchToScratchMode: createSwitchToScratchModeTool(apiKey),
         CreateDiagram: createCreateDiagramTool(apiKey),
         TalkToDiagram: createTalkToDiagramTool(apiKey),
+        StopVoiceChat: createStopVoiceChatTool(apiKey),
       },
     });
 

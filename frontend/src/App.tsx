@@ -365,8 +365,8 @@ function App() {
             return;
           }
           const newDiagram = await createDiagram(project.currentProject.id, name, 'graph TD\n  Start[Start]');
+          setDiagramsRefreshTrigger(prev => prev + 1); // Trigger refresh first
           await diagram.loadDiagram(newDiagram.id);
-          setDiagramsRefreshTrigger(prev => prev + 1); // Trigger refresh
         }}
         onTalkToDiagram={(message) => {
           chat.sendMessage(message);

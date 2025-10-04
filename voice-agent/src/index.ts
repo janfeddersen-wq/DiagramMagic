@@ -214,6 +214,67 @@ function createTalkToDiagramTool(apiKey: string) {
   });
 }
 
+function createListDiagramsTool(apiKey: string) {
+  return llm.tool({
+    description: 'List all diagrams in the current project',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      console.log('🔧 [TOOL] ListDiagrams called');
+      try {
+        const result = await callBackendTool(apiKey, 'ListDiagrams', {});
+        // Format diagrams for the agent to speak
+        if (result.diagrams && result.diagrams.length > 0) {
+          const diagramList = result.diagrams.map((d: any) => `Diagram ID ${d.id}: ${d.name}`).join('. ');
+          return JSON.stringify({
+            success: true,
+            message: `You have ${result.diagrams.length} diagrams: ${diagramList}`,
+            diagrams: result.diagrams
+          });
+        } else {
+          return JSON.stringify({
+            success: true,
+            message: 'You have no diagrams in this project yet. Would you like to create one?',
+            diagrams: []
+          });
+        }
+      } catch (error) {
+        console.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createSelectDiagramTool(apiKey: string) {
+  return llm.tool({
+    description: 'Switch to a specific diagram by ID',
+    parameters: {
+      type: 'object',
+      properties: {
+        diagramId: {
+          type: 'number',
+          description: 'The ID of the diagram to switch to',
+        },
+      },
+      required: ['diagramId'],
+    },
+    execute: async (args: any) => {
+      console.log('🔧 [TOOL] SelectDiagram called with:', args);
+      const { diagramId } = args;
+      try {
+        const result = await callBackendTool(apiKey, 'SelectDiagram', { diagramId });
+        return JSON.stringify({ success: true, message: `Switched to diagram ${diagramId}` });
+      } catch (error) {
+        console.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
 function createStopVoiceChatTool(apiKey: string) {
   return llm.tool({
     description: 'Stop the voice chat and close the voice assistant',
@@ -321,8 +382,10 @@ export default defineAgent({
 
     IMPORTANT: You have access to these UI control tools:
     - AddProject: ONLY when explicitly asked to "create a project" or "add a project"
-    - ListProjects: ONLY when explicitly asked to "list projects" or "show my projects"
-    - SelectProject: ONLY when explicitly asked to "switch to project" or "open project" (requires project ID)
+    - ListProjects: List all projects - use this when user wants to see or switch projects
+    - SelectProject: Switch to a project by ID (requires project ID from ListProjects)
+    - ListDiagrams: List all diagrams in current project - use when user wants to see or switch diagrams
+    - SelectDiagram: Switch to a diagram by ID (requires diagram ID from ListDiagrams)
     - SwitchToScratchMode: ONLY when explicitly asked to "switch to scratch mode"
     - CreateDiagram: ONLY when explicitly asked to "create a diagram" or "add a diagram" (requires diagram name)
     - TalkToDiagram: Use this for EVERYTHING ELSE - any request about creating, modifying, or generating diagrams
@@ -338,9 +401,19 @@ export default defineAgent({
     - "Create a project called MyApp" → AddProject
     - "Create a diagram called UserFlow" → CreateDiagram (explicit diagram creation)
 
-    WORKFLOW for switching projects:
-    1. First call ListProjects to show available projects
-    2. Then call SelectProject with the project ID the user chooses
+    MULTI-STEP WORKFLOWS (you can call multiple tools in sequence):
+
+    When user says "switch to project X" or "open project X":
+    1. First call ListProjects to get available projects and their IDs
+    2. Find the project with name matching "X" from the results
+    3. Then call SelectProject with that project's ID
+    4. Tell the user you've switched to that project
+
+    When user says "switch to diagram X" or "open diagram X":
+    1. First call ListDiagrams to get available diagrams in current project
+    2. Find the diagram with name matching "X" from the results
+    3. Then call SelectDiagram with that diagram's ID
+    4. Tell the user you've switched to that diagram
 
     CRITICAL: When a user asks you to perform an action, you MUST actually call the corresponding tool function. Never just say you did something - actually do it by calling the tool.
 
@@ -360,6 +433,8 @@ export default defineAgent({
         SelectProject: createSelectProjectTool(apiKey),
         SwitchToScratchMode: createSwitchToScratchModeTool(apiKey),
         CreateDiagram: createCreateDiagramTool(apiKey),
+        ListDiagrams: createListDiagramsTool(apiKey),
+        SelectDiagram: createSelectDiagramTool(apiKey),
         TalkToDiagram: createTalkToDiagramTool(apiKey),
         StopVoiceChat: createStopVoiceChatTool(apiKey),
       },

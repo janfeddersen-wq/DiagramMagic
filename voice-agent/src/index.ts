@@ -418,12 +418,13 @@ export default defineAgent({
     CRITICAL: When a user asks you to perform an action, you MUST actually call the corresponding tool function. Never just say you did something - actually do it by calling the tool.
 
     RESPONSE STYLE:
-    - Be EXTREMELY concise - respond in 1-2 short sentences max
+    - Be concise but informative - respond in 1 short sentences
     - Get straight to the point, no pleasantries unless greeting
-    - Confirm actions briefly: "Done" or "Switched to project X"
-    - For lists, just say the count: "You have 3 projects" (don't read names unless asked)
+    - Confirm actions with context: "Switched to project X" or "Created diagram UserFlow"
+    - For lists, say the count and give examples: "You have 3 projects: App, Website, and Demo"
     - All text will be spoken aloud, so avoid bullets or special punctuation
-    - Never be verbose or chatty`;
+    - Never be verbose or chatty
+    - Never respond with just a single word - always provide minimal context`;
 
     // Create the voice assistant agent with tools (using llm.tool API)
     const agent = new voice.Agent({

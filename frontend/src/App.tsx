@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { MermaidDiagram } from './components/MermaidDiagram';
 import { ChatPanel } from './components/ChatPanel';
@@ -11,50 +11,28 @@ import { AuthModal } from './components/AuthModal';
 import { WelcomePage } from './components/WelcomePage';
 import { PromptModal, AlertModal } from './components/Modal';
 import { useAuth } from './contexts/AuthContext';
-import { ChatMessage, RenderValidationRequest, RenderValidationResponse } from './types';
-import { generateDiagram } from './services/api';
-import { FileProcessedData } from './components/FileUpload';
-import {
-  Project,
-  Diagram,
-  DiagramVersion,
-  createProject,
-  createDiagram,
-  createDiagramVersion,
-  getDiagram,
-  getProjectChatHistory,
-  getDiagramChatHistory
-} from './services/projectsApi';
+import { RenderValidationRequest, RenderValidationResponse } from './types';
+import { createProject, createDiagram } from './services/projectsApi';
+import { useProject } from './hooks/useProject';
+import { useDiagram } from './hooks/useDiagram';
+import { useModals } from './hooks/useModals';
+import { useChat } from './hooks/useChat';
 
 function App() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentDiagram, setCurrentDiagram] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const currentValidationRequestRef = useRef<string | null>(null);
 
-  // Project management state
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [currentDiagramObj, setCurrentDiagramObj] = useState<Diagram | null>(null);
-  const [currentVersion, setCurrentVersion] = useState<DiagramVersion | null>(null);
-  const [isScratchMode, setIsScratchMode] = useState(true);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-
-  // Modal state
-  const [promptModal, setPromptModal] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: (value: string) => void; defaultValue?: string }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    defaultValue: ''
-  });
-  const [alertModal, setAlertModal] = useState<{ isOpen: boolean; title: string; message: string; type?: 'info' | 'success' | 'warning' | 'error' }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    type: 'info'
-  });
+  // Custom hooks for state management
+  const project = useProject();
+  const diagram = useDiagram();
+  const modals = useModals();
+  const chat = useChat(
+    diagram.currentDiagram,
+    project.currentProject?.id,
+    diagram.currentDiagramObj?.id,
+    (code) => diagram.updateDiagram(code, project.isScratchMode)
+  );
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -68,7 +46,7 @@ function App() {
     socket.on('renderValidationRequest', (request: RenderValidationRequest) => {
       console.log('Received render validation request:', request);
       currentValidationRequestRef.current = request.requestId;
-      setCurrentDiagram(request.mermaidCode);
+      diagram.updateDiagram(request.mermaidCode, project.isScratchMode);
     });
 
     socket.on('disconnect', () => {
@@ -79,24 +57,6 @@ function App() {
       socket.disconnect();
     };
   }, []);
-
-  // Load diagram chat history when diagram is selected
-  useEffect(() => {
-    if (currentDiagramObj && !isScratchMode) {
-      loadDiagramChatHistory();
-    }
-  }, [currentDiagramObj]);
-
-  const loadDiagramChatHistory = async () => {
-    if (!currentDiagramObj) return;
-
-    try {
-      const chatMessages = await getDiagramChatHistory(currentDiagramObj.id);
-      setMessages(chatMessages.map(msg => ({ role: msg.role, content: msg.content })));
-    } catch (error) {
-      console.error('Failed to load chat history:', error);
-    }
-  };
 
   const handleRenderComplete = (success: boolean, error?: string) => {
     if (currentValidationRequestRef.current && socketRef.current) {
@@ -111,229 +71,80 @@ function App() {
     }
   };
 
-  const handleFileProcessed = async (data: FileProcessedData) => {
-    if (data.type === 'image' && data.diagram) {
-      const userMessage: ChatMessage = {
-        role: 'user',
-        content: `I've uploaded an image. Please review and validate this Mermaid diagram code, fix any issues if needed:\n\n\`\`\`mermaid\n${data.diagram}\n\`\`\``
-      };
-      setMessages((prev) => [...prev, userMessage]);
-      setIsLoading(true);
-
-      try {
-        const response = await generateDiagram(
-          `Please review and validate this Mermaid diagram code that was generated from an image. Fix any syntax errors or issues if needed:\n\n\`\`\`mermaid\n${data.diagram}\n\`\`\``,
-          messages,
-          currentDiagram,
-          currentProject?.id,
-          currentDiagramObj?.id
-        );
-
-        if (response.success) {
-          const assistantMessage: ChatMessage = {
-            role: 'assistant',
-            content: response.chatAnswer
-          };
-          setMessages((prev) => [...prev, assistantMessage]);
-
-          if (response.mermaidDiagram) {
-            await handleDiagramUpdate(response.mermaidDiagram);
-          }
-        } else {
-          const errorMessage: ChatMessage = {
-            role: 'assistant',
-            content: `Error: ${response.error || 'Failed to process diagram'}`
-          };
-          setMessages((prev) => [...prev, errorMessage]);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        const errorMessage: ChatMessage = {
-          role: 'assistant',
-          content: `Error: ${error instanceof Error ? error.message : 'Failed to communicate with server'}`
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      } finally {
-        setIsLoading(false);
+  const handleSelectProject = async (projectParam: typeof project.currentProject) => {
+    await project.selectProject(
+      projectParam,
+      (diagramObj, version, code) => {
+        diagram.setDiagramState(diagramObj, version, code);
+      },
+      () => {
+        chat.clearChat();
+        diagram.clearDiagram();
       }
-    } else if (data.type === 'document' && data.markdown) {
-      const userMessage: ChatMessage = {
-        role: 'user',
-        content: `I've uploaded a document with the following content:\n\n${data.markdown}\n\nPlease use this as context for creating diagrams.`
-      };
-      setMessages((prev) => [...prev, userMessage]);
-
-      const assistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: 'I\'ve received your document. I can now use this information to create diagrams. What would you like me to visualize?'
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    }
-  };
-
-  const handleDiagramUpdate = async (mermaidCode: string) => {
-    setCurrentDiagram(mermaidCode);
-
-    // If in project mode, save as new version
-    if (!isScratchMode && currentDiagramObj) {
-      try {
-        const version = await createDiagramVersion(currentDiagramObj.id, mermaidCode);
-        setCurrentVersion(version);
-      } catch (error) {
-        console.error('Failed to save diagram version:', error);
-      }
-    }
-  };
-
-  const handleClearChat = () => {
-    setMessages([]);
-    setCurrentDiagram('');
-    if (isScratchMode) {
-      // In scratch mode, just clear
-    } else {
-      // In project mode, maybe ask for confirmation?
-    }
-  };
-
-  const handleExamplePromptClick = (prompt: string) => {
-    handleSendMessage(prompt);
-  };
-
-  const handleSendMessage = async (prompt: string) => {
-    const userMessage: ChatMessage = { role: 'user', content: prompt };
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
-
-    try {
-      const response = await generateDiagram(
-        prompt,
-        messages,
-        currentDiagram,
-        currentProject?.id,
-        currentDiagramObj?.id
-      );
-
-      if (response.success) {
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content: response.chatAnswer
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-
-        if (response.mermaidDiagram) {
-          await handleDiagramUpdate(response.mermaidDiagram);
-        }
-      } else {
-        const errorMessage: ChatMessage = {
-          role: 'assistant',
-          content: `Error: ${response.error || 'Failed to generate diagram'}`
-        };
-        setMessages((prev) => [...prev, errorMessage]);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      const errorMessage: ChatMessage = {
-        role: 'assistant',
-        content: `Error: ${error instanceof Error ? error.message : 'Failed to communicate with server'}`
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSelectProject = async (project: Project | null) => {
-    setCurrentProject(project);
-    setIsScratchMode(!project);
-    setMessages([]);
-    setCurrentDiagram('');
-    setCurrentDiagramObj(null);
-    setCurrentVersion(null);
-
-    // Load the latest diagram for this project if available
-    if (project) {
-      try {
-        const { listDiagramsByProject } = await import('./services/projectsApi');
-        const diagrams = await listDiagramsByProject(project.id);
-
-        if (diagrams.length > 0) {
-          // Select the most recently updated diagram
-          const latestDiagram = diagrams[0];
-          const fullDiagram = await getDiagram(latestDiagram.id);
-
-          setCurrentDiagramObj(fullDiagram.diagram);
-          if (fullDiagram.latestVersion) {
-            setCurrentVersion(fullDiagram.latestVersion);
-            setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load project diagrams:', error);
-      }
-    }
+    );
   };
 
   const handleScratchMode = () => {
-    setIsScratchMode(true);
-    setCurrentProject(null);
-    setCurrentDiagramObj(null);
-    setCurrentVersion(null);
-    setMessages([]);
-    setCurrentDiagram('');
+    project.enterScratchMode(() => {
+      chat.clearChat();
+      diagram.clearDiagram();
+    });
   };
 
   const handleSaveToProject = async () => {
     if (!isAuthenticated) {
-      setShowAuthModal(true);
+      modals.openAuthModal();
       return;
     }
 
-    setPromptModal({
-      isOpen: true,
-      title: 'Create New Project',
-      message: 'Enter project name:',
-      onConfirm: async (projectName) => {
+    modals.openPromptModal(
+      'Create New Project',
+      'Enter project name:',
+      async (projectName) => {
         if (!projectName) return;
 
-        setPromptModal({
-          isOpen: true,
-          title: 'Create Diagram',
-          message: 'Enter diagram name:',
-          defaultValue: 'Untitled Diagram',
-          onConfirm: async (diagramName) => {
+        modals.openPromptModal(
+          'Create Diagram',
+          'Enter diagram name:',
+          async (diagramName) => {
             try {
-              const project = await createProject(projectName);
-              const diagram = await createDiagram(project.id, diagramName || 'Untitled Diagram', currentDiagram);
+              const newProject = await createProject(projectName);
+              const diagramResult = await createDiagram(
+                newProject.id,
+                diagramName || 'Untitled Diagram',
+                diagram.currentDiagram
+              );
 
-              setCurrentProject(project);
-              setCurrentDiagramObj(diagram.diagram);
-              setCurrentVersion(diagram.version);
-              setIsScratchMode(false);
+              project.selectProject(newProject, () => {}, () => {});
+              diagram.setDiagramState(
+                diagramResult.diagram,
+                diagramResult.version,
+                diagram.currentDiagram
+              );
 
-              setAlertModal({
-                isOpen: true,
-                title: 'Success',
-                message: 'Saved to project successfully!',
-                type: 'success'
-              });
+              modals.openAlertModal(
+                'Success',
+                'Saved to project successfully!',
+                'success'
+              );
             } catch (error) {
               console.error('Failed to save to project:', error);
-              setAlertModal({
-                isOpen: true,
-                title: 'Error',
-                message: 'Failed to save to project',
-                type: 'error'
-              });
+              modals.openAlertModal(
+                'Error',
+                'Failed to save to project',
+                'error'
+              );
             }
-          }
-        });
+          },
+          'Untitled Diagram'
+        );
       }
-    });
+    );
   };
 
-  const handleSelectVersion = async (version: DiagramVersion) => {
-    setCurrentVersion(version);
-    setCurrentDiagram(version.mermaid_code);
+  const handleClearChat = () => {
+    chat.clearChat();
+    diagram.updateDiagram('', project.isScratchMode);
   };
 
   if (authLoading) {
@@ -348,8 +159,8 @@ function App() {
   if (!isAuthenticated && !authLoading) {
     return (
       <>
-        <WelcomePage onShowAuth={() => setShowAuthModal(true)} />
-        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+        <WelcomePage onShowAuth={modals.openAuthModal} />
+        <AuthModal isOpen={modals.showAuthModal} onClose={modals.closeAuthModal} />
       </>
     );
   }
@@ -375,9 +186,9 @@ function App() {
             </div>
             {isAuthenticated && (
               <ProjectSelector
-                currentProject={currentProject}
+                currentProject={project.currentProject}
                 onSelectProject={handleSelectProject}
-                isScratchMode={isScratchMode}
+                isScratchMode={project.isScratchMode}
                 onScratchMode={handleScratchMode}
               />
             )}
@@ -404,7 +215,7 @@ function App() {
               </>
             ) : (
               <button
-                onClick={() => setShowAuthModal(true)}
+                onClick={modals.openAuthModal}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Sign In
@@ -415,42 +226,23 @@ function App() {
       </header>
 
       {/* Help Section */}
-      <HelpSection onPromptClick={handleExamplePromptClick} />
+      <HelpSection onPromptClick={chat.sendMessage} />
 
       {/* Scratch Mode Warning */}
-      {isScratchMode && <ScratchModeWarning onSaveToProject={handleSaveToProject} />}
+      {project.isScratchMode && <ScratchModeWarning onSaveToProject={handleSaveToProject} />}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Diagrams Sidebar - Left */}
-        {isAuthenticated && !isScratchMode && currentProject && (
+        {isAuthenticated && !project.isScratchMode && project.currentProject && (
           <DiagramsSidebar
-            projectId={currentProject.id}
-            currentDiagram={currentDiagramObj}
-            onSelectDiagram={async (diagram) => {
-              if (!diagram) {
-                setCurrentDiagramObj(null);
-                setCurrentVersion(null);
-                setCurrentDiagram('');
-                return;
-              }
-
-              setCurrentDiagramObj(diagram);
-
-              // Load full diagram with versions
-              const fullDiagram = await getDiagram(diagram.id);
-              if (fullDiagram.latestVersion) {
-                setCurrentVersion(fullDiagram.latestVersion);
-                setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
-              }
-            }}
+            projectId={project.currentProject.id}
+            currentDiagram={diagram.currentDiagramObj}
+            onSelectDiagram={diagram.selectDiagram}
             onCreateDiagram={async (name) => {
-              // Create a blank diagram with fresh chat
-              const result = await createDiagram(currentProject.id, name, '');
-              setCurrentDiagramObj(result.diagram);
-              setCurrentVersion(result.version);
-              setCurrentDiagram('');
-              setMessages([]); // Clear chat for new diagram
+              const result = await createDiagram(project.currentProject!.id, name, '');
+              diagram.setDiagramState(result.diagram, result.version, '');
+              chat.clearChat();
             }}
           />
         )}
@@ -465,12 +257,12 @@ function App() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                   </svg>
                   Diagram Preview
-                  {currentVersion && <span className="text-sm text-gray-500">(v{currentVersion.version})</span>}
+                  {diagram.currentVersion && <span className="text-sm text-gray-500">(v{diagram.currentVersion.version})</span>}
                 </h2>
               </div>
               <div className="flex-1 relative">
                 <MermaidDiagram
-                  diagram={currentDiagram}
+                  diagram={diagram.currentDiagram}
                   socket={socketRef.current || undefined}
                   onRenderComplete={handleRenderComplete}
                 />
@@ -479,11 +271,11 @@ function App() {
           </div>
 
           {/* Version History */}
-          {!isScratchMode && currentDiagramObj && (
+          {!project.isScratchMode && diagram.currentDiagramObj && (
             <DiagramVersionHistory
-              diagramId={currentDiagramObj.id}
-              currentVersion={currentVersion}
-              onSelectVersion={handleSelectVersion}
+              diagramId={diagram.currentDiagramObj.id}
+              currentVersion={diagram.currentVersion}
+              onSelectVersion={diagram.selectVersion}
             />
           )}
         </div>
@@ -491,35 +283,35 @@ function App() {
         {/* Right: Chat */}
         <div className="w-[480px] bg-white rounded-tr-2xl shadow-xl overflow-hidden border-t border-r border-gray-200/50 m-4 mb-0 ml-0">
           <ChatPanel
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            onFileProcessed={handleFileProcessed}
+            messages={chat.messages}
+            onSendMessage={chat.sendMessage}
+            onFileProcessed={chat.handleFileProcessed}
             onClearChat={handleClearChat}
-            isLoading={isLoading}
+            isLoading={chat.isLoading}
           />
         </div>
       </div>
 
       {/* Auth Modal */}
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal isOpen={modals.showAuthModal} onClose={modals.closeAuthModal} />
 
       {/* Prompt Modal */}
       <PromptModal
-        isOpen={promptModal.isOpen}
-        onClose={() => setPromptModal({ ...promptModal, isOpen: false })}
-        onConfirm={promptModal.onConfirm}
-        title={promptModal.title}
-        message={promptModal.message}
-        defaultValue={promptModal.defaultValue}
+        isOpen={modals.promptModal.isOpen}
+        onClose={modals.closePromptModal}
+        onConfirm={modals.promptModal.onConfirm}
+        title={modals.promptModal.title}
+        message={modals.promptModal.message}
+        defaultValue={modals.promptModal.defaultValue}
       />
 
       {/* Alert Modal */}
       <AlertModal
-        isOpen={alertModal.isOpen}
-        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
-        title={alertModal.title}
-        message={alertModal.message}
-        type={alertModal.type}
+        isOpen={modals.alertModal.isOpen}
+        onClose={modals.closeAlertModal}
+        title={modals.alertModal.title}
+        message={modals.alertModal.message}
+        type={modals.alertModal.type}
       />
     </div>
   );

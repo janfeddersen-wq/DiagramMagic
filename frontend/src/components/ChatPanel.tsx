@@ -83,7 +83,7 @@ export function ChatPanel({ messages, onSendMessage, onFileProcessed, onClearCha
             const formData = new FormData();
             formData.append('audio', audioBlob, 'recording.webm');
 
-            const response = await fetch('http://localhost:3001/api/transcribe', {
+            const response = await fetch('/api/transcribe', {
               method: 'POST',
               body: formData,
             });

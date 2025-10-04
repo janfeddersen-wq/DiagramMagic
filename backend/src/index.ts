@@ -97,6 +97,7 @@ const diagramsController = new DiagramsController();
 // Voice Agent API key to Socket mapping
 interface VoiceAgentSession {
   socketId: string;
+  userId?: number;
   currentProjectId?: number;
 }
 const voiceAgentApiKeyMap = new Map<string, VoiceAgentSession>(); // apiKey -> session
@@ -109,11 +110,30 @@ io.on('connection', (socket) => {
   diagramController.setupSocketListeners(socket);
 
   // Voice Agent API key registration
-  socket.on('voice-agent:register', (apiKey: string) => {
+  socket.on('voice-agent:register', async (data: { apiKey: string; userToken?: string } | string) => {
+    // Handle both old string format and new object format for backward compatibility
+    const apiKey = typeof data === 'string' ? data : data.apiKey;
+    const userToken = typeof data === 'object' && data !== null ? data.userToken : undefined;
+
     console.log('🔑 [SOCKET.IO] Voice agent API key registration received');
-    console.log('🔑 [SOCKET.IO] API Key:', apiKey.substring(0, 10) + '...');
+    console.log('🔑 [SOCKET.IO] API Key:', apiKey?.substring(0, 10) + '...');
+    console.log('🔑 [SOCKET.IO] Has user token:', !!userToken);
     console.log('🔑 [SOCKET.IO] Socket ID:', socket.id);
-    voiceAgentApiKeyMap.set(apiKey, { socketId: socket.id });
+
+    // Decode JWT to get user ID
+    let userId: number | undefined;
+    if (userToken) {
+      try {
+        const { verifyToken } = await import('./utils/auth.js');
+        const decoded = verifyToken(userToken);
+        userId = decoded.userId;
+        console.log('🔑 [SOCKET.IO] Decoded user ID:', userId);
+      } catch (error) {
+        console.error('🔑 [SOCKET.IO] Failed to decode JWT:', error);
+      }
+    }
+
+    voiceAgentApiKeyMap.set(apiKey, { socketId: socket.id, userId });
     console.log('🔑 [SOCKET.IO] API key mapped successfully');
     console.log('🔑 [SOCKET.IO] Total mappings:', voiceAgentApiKeyMap.size);
   });
@@ -197,8 +217,7 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
   // Handle ListProjects specially - return data for the agent to speak
   if (toolName === 'ListProjects') {
     try {
-      // @ts-ignore - socket.data is added by our auth middleware
-      const userId = socket.data?.userId;
+      const userId = session.userId;
       if (!userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }

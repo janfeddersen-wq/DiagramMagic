@@ -361,12 +361,12 @@ function App() {
         }}
         onCreateDiagram={async (name) => {
           if (!project.currentProject) {
-            modals.openAlert('Please select a project first', 'error');
+            modals.openAlertModal('Error', 'Please select a project first', 'error');
             return;
           }
           const newDiagram = await createDiagram(project.currentProject.id, name, 'graph TD\n  Start[Start]');
           setDiagramsRefreshTrigger(prev => prev + 1); // Trigger refresh first
-          await diagram.loadDiagram(newDiagram.id);
+          await diagram.loadDiagram(newDiagram.diagram.id);
         }}
         onListDiagrams={() => {
           // This will be handled by the agent returning the list to speak

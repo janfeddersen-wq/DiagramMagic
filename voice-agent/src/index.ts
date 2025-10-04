@@ -36,9 +36,9 @@ async function callBackendTool(apiKey: string, toolName: string, params: any = {
     console.log(`📡 [BACKEND CALL] Response status:`, response.status);
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error(`📡 [BACKEND CALL] Error response:`, error);
-      throw new Error(error.error || 'Tool call failed');
+      const errorData = await response.json();
+      console.error(`📡 [BACKEND CALL] Error response:`, errorData);
+      throw new Error((errorData as any).error || 'Tool call failed');
     }
 
     const result = await response.json();

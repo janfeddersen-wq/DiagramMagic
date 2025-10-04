@@ -21,7 +21,7 @@ export interface ConversionResult {
  */
 export async function convertWordToMarkdown(filePath: string): Promise<ConversionResult> {
   try {
-    const result = await mammoth.convertToMarkdown({ path: filePath });
+    const result = await mammoth.extractRawText({ path: filePath });
 
     return {
       markdown: result.value,

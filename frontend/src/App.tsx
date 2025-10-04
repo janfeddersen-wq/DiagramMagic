@@ -368,6 +368,17 @@ function App() {
           setDiagramsRefreshTrigger(prev => prev + 1); // Trigger refresh first
           await diagram.loadDiagram(newDiagram.id);
         }}
+        onListDiagrams={() => {
+          // This will be handled by the agent returning the list to speak
+          // The UI doesn't need to do anything special
+        }}
+        onSelectDiagram={async (diagramId) => {
+          if (!isAuthenticated) {
+            modals.openAuthModal();
+            return;
+          }
+          await diagram.loadDiagram(diagramId);
+        }}
         onTalkToDiagram={(message) => {
           chat.sendMessage(message);
         }}

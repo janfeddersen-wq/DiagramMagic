@@ -55,6 +55,15 @@ export function useDiagram() {
     setCurrentDiagram(code);
   };
 
+  const loadDiagram = async (diagramId: number) => {
+    const fullDiagram = await getDiagram(diagramId);
+    if (fullDiagram.latestVersion) {
+      setCurrentDiagramObj(fullDiagram.diagram);
+      setCurrentVersion(fullDiagram.latestVersion);
+      setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
+    }
+  };
+
   return {
     currentDiagram,
     currentDiagramObj,
@@ -64,5 +73,6 @@ export function useDiagram() {
     selectVersion,
     clearDiagram,
     setDiagramState,
+    loadDiagram,
   };
 }

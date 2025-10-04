@@ -12,6 +12,8 @@ interface VoiceAgentModalProps {
   onSelectProject?: (projectId: number) => void;
   onSwitchToScratchMode?: () => void;
   onCreateDiagram?: (name: string) => void;
+  onListDiagrams?: () => void;
+  onSelectDiagram?: (diagramId: number) => void;
   onTalkToDiagram?: (message: string) => void;
 }
 
@@ -56,6 +58,8 @@ export function VoiceAgentModal({
   onSelectProject,
   onSwitchToScratchMode,
   onCreateDiagram,
+  onListDiagrams,
+  onSelectDiagram,
   onTalkToDiagram
 }: VoiceAgentModalProps) {
   const [connecting, setConnecting] = useState(false);
@@ -108,6 +112,16 @@ export function VoiceAgentModal({
         if (onTalkToDiagram) onTalkToDiagram(params.message);
       });
 
+      socket.on('voice-agent:ListDiagrams', () => {
+        console.log('✅ [UI] ListDiagrams event');
+        if (onListDiagrams) onListDiagrams();
+      });
+
+      socket.on('voice-agent:SelectDiagram', (params) => {
+        console.log('✅ [UI] SelectDiagram event:', params);
+        if (onSelectDiagram) onSelectDiagram(params.diagramId);
+      });
+
       socket.on('voice-agent:StopVoiceChat', () => {
         console.log('✅ [UI] StopVoiceChat event - closing modal');
         handleDisconnect();
@@ -119,11 +133,13 @@ export function VoiceAgentModal({
         socket.off('voice-agent:SelectProject');
         socket.off('voice-agent:SwitchToScratchMode');
         socket.off('voice-agent:CreateDiagram');
+        socket.off('voice-agent:ListDiagrams');
+        socket.off('voice-agent:SelectDiagram');
         socket.off('voice-agent:TalkToDiagram');
         socket.off('voice-agent:StopVoiceChat');
       };
     }
-  }, [apiKey, socket, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onTalkToDiagram]);
+  }, [apiKey, socket, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram]);
 
   const fetchToken = async () => {
     try {

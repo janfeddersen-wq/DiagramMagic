@@ -11,6 +11,7 @@ import { AuthController } from './controllers/authController.js';
 import { ProjectsController } from './controllers/projectsController.js';
 import { DiagramsController } from './controllers/diagramsController.js';
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
+import { db } from './database/connection.js';
 
 dotenv.config();
 
@@ -94,7 +95,11 @@ const projectsController = new ProjectsController();
 const diagramsController = new DiagramsController();
 
 // Voice Agent API key to Socket mapping
-const voiceAgentApiKeyMap = new Map<string, string>(); // apiKey -> socketId
+interface VoiceAgentSession {
+  socketId: string;
+  currentProjectId?: number;
+}
+const voiceAgentApiKeyMap = new Map<string, VoiceAgentSession>(); // apiKey -> session
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -108,7 +113,7 @@ io.on('connection', (socket) => {
     console.log('🔑 [SOCKET.IO] Voice agent API key registration received');
     console.log('🔑 [SOCKET.IO] API Key:', apiKey.substring(0, 10) + '...');
     console.log('🔑 [SOCKET.IO] Socket ID:', socket.id);
-    voiceAgentApiKeyMap.set(apiKey, socket.id);
+    voiceAgentApiKeyMap.set(apiKey, { socketId: socket.id });
     console.log('🔑 [SOCKET.IO] API key mapped successfully');
     console.log('🔑 [SOCKET.IO] Total mappings:', voiceAgentApiKeyMap.size);
   });
@@ -117,8 +122,8 @@ io.on('connection', (socket) => {
     console.log('Client disconnected:', socket.id);
 
     // Clean up API key mapping on disconnect
-    for (const [apiKey, socketId] of voiceAgentApiKeyMap.entries()) {
-      if (socketId === socket.id) {
+    for (const [apiKey, session] of voiceAgentApiKeyMap.entries()) {
+      if (session.socketId === socket.id) {
         voiceAgentApiKeyMap.delete(apiKey);
         console.log('Cleaned up voice agent API key');
       }
@@ -174,17 +179,17 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
   console.log('🎯 [BACKEND] Looking up API key:', apiKey.substring(0, 10) + '...');
   console.log('🎯 [BACKEND] Current API key mappings:', Array.from(voiceAgentApiKeyMap.keys()).map(k => k.substring(0, 10) + '...'));
 
-  const socketId = voiceAgentApiKeyMap.get(apiKey);
-  if (!socketId) {
+  const session = voiceAgentApiKeyMap.get(apiKey);
+  if (!session) {
     console.error('🎯 [BACKEND] API key not found in mappings');
     return res.status(404).json({ error: 'Session not found or expired' });
   }
 
-  console.log('🎯 [BACKEND] Found socket ID:', socketId);
+  console.log('🎯 [BACKEND] Found socket ID:', session.socketId);
 
-  const socket = io.sockets.sockets.get(socketId);
+  const socket = io.sockets.sockets.get(session.socketId);
   if (!socket) {
-    console.error('🎯 [BACKEND] Socket not found for ID:', socketId);
+    console.error('🎯 [BACKEND] Socket not found for ID:', session.socketId);
     voiceAgentApiKeyMap.delete(apiKey); // Clean up stale mapping
     return res.status(404).json({ error: 'Client disconnected' });
   }
@@ -216,9 +221,50 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
     }
   }
 
+  // Handle ListDiagrams specially - return data for the agent to speak
+  if (toolName === 'ListDiagrams') {
+    try {
+      // Get current project ID from session
+      const projectId = session.currentProjectId;
+      if (!projectId) {
+        return res.json({
+          success: false,
+          message: 'No project selected. Please select a project first.',
+          diagrams: []
+        });
+      }
+
+      const diagrams = await db
+        .selectFrom('diagrams')
+        .selectAll()
+        .where('project_id', '=', projectId)
+        .orderBy('updated_at', 'desc')
+        .execute();
+
+      // Return diagrams list for the agent to speak
+      return res.json({
+        success: true,
+        diagrams: diagrams.map(d => ({ id: d.id, name: d.name }))
+      });
+    } catch (error) {
+      console.error('🎯 [BACKEND] Error listing diagrams:', error);
+      return res.status(500).json({ error: 'Failed to list diagrams' });
+    }
+  }
+
+  // Handle SelectProject - update session state
+  if (toolName === 'SelectProject') {
+    const { projectId } = params || {};
+    if (projectId) {
+      session.currentProjectId = projectId;
+      voiceAgentApiKeyMap.set(apiKey, session); // Update the map
+      console.log('🎯 [BACKEND] Updated session current project ID to:', projectId);
+    }
+  }
+
   // Emit event to the specific client's UI for other tools
   const eventName = `voice-agent:${toolName}`;
-  console.log('🎯 [BACKEND] Emitting event:', eventName, 'to socket:', socketId);
+  console.log('🎯 [BACKEND] Emitting event:', eventName, 'to socket:', session.socketId);
   console.log('🎯 [BACKEND] Event params:', params);
 
   socket.emit(eventName, params);

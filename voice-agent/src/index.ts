@@ -365,6 +365,7 @@ export default defineAgent({
       apiKey: process.env.CEREBRAS_API_KEY,
       toolChoice: 'auto', // Enable automatic tool calling
       parallelToolCalls: false, // Disable parallel tool calls for simpler debugging
+      thinking: false, // Disable thinking tokens
     });
 
     const stt = new STT({
@@ -426,7 +427,7 @@ export default defineAgent({
     - Never be verbose or chatty
     - Never respond with just a single word - always provide minimal context`;
 
-    // Create the voice assistant agent with tools (using llm.tool API)
+    // Create the voice assistant agent with tools
     const agent = new voice.Agent({
       stt,
       llm: llmInstance,

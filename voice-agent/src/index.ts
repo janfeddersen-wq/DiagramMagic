@@ -491,24 +491,6 @@ export default defineAgent({
       console.log('💬 User speech transcribed:', JSON.stringify(msg));
     });
 
-    // Listen to LLM events to see what's being sent
-    llmInstance.on('metrics_collected', (metrics: any) => {
-      console.log('📊 LLM Metrics:', metrics);
-    });
-
-    // Intercept LLM chat to see the actual request
-    const originalChat = llmInstance.chat.bind(llmInstance);
-    llmInstance.chat = async function(options: any) {
-      console.log('🔍 LLM Chat called with options:', JSON.stringify({
-        history: options.chatCtx?.messages?.map((m: any) => ({
-          role: m.role,
-          content: typeof m.content === 'string' ? m.content : '[complex content]'
-        })),
-        tools: options.fnCtx ? 'tools provided' : 'no tools'
-      }, null, 2));
-      return originalChat(options);
-    };
-
     await session.start({
       agent,
       room: ctx.room,

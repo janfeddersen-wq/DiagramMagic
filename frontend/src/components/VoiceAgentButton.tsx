@@ -18,7 +18,11 @@ export function VoiceAgentButton({ onToggle, isActive = false }: VoiceAgentButto
     onToggle(newState);
   };
 
-  const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  // Detect macOS more reliably
+  const isMac = typeof navigator !== 'undefined' && (
+    /Mac|iPhone|iPad|iPod/.test(navigator.platform) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) // iPad on iPadOS 13+
+  );
   const shortcutKey = isMac ? 'Cmd+K' : 'Ctrl+K';
 
   return (

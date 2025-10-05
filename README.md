@@ -592,6 +592,5 @@ For issues, questions, or contributions:
 - Check existing documentation
 - Review example prompts in the app
 
----
-
-**Built with ❤️ using AI-powered tools**
+## KNOWN ISSUES
+- Draw.io does not cleanly accept certain types or mermaid diagrams .... have to debug draw.io for that. Documentation says its fine (https://github.com/jgraph/drawio/issues/5290)

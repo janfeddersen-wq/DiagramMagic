@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { useMermaid } from '../hooks/useMermaid';
 import panzoom, { PanZoom } from 'panzoom';
 import { Socket } from 'socket.io-client';
@@ -9,7 +9,12 @@ interface MermaidDiagramProps {
   onRenderComplete?: (success: boolean, error?: string) => void;
 }
 
-export function MermaidDiagram({ diagram, socket, onRenderComplete }: MermaidDiagramProps) {
+export interface MermaidDiagramRef {
+  saveAsMarkdown: () => void;
+  saveAsImage: () => void;
+}
+
+export const MermaidDiagram = forwardRef<MermaidDiagramRef, MermaidDiagramProps>(({ diagram, socket, onRenderComplete }, ref) => {
   const containerRef = useMermaid(diagram, socket, onRenderComplete);
   const panzoomRef = useRef<PanZoom | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -134,6 +139,12 @@ export function MermaidDiagram({ diagram, socket, onRenderComplete }: MermaidDia
 
     img.src = svgDataUrl;
   };
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    saveAsMarkdown: handleSaveMarkdown,
+    saveAsImage: handleSaveImage,
+  }));
 
   const handleOpenInDrawIO = () => {
     if (!diagram) return;
@@ -268,4 +279,4 @@ export function MermaidDiagram({ diagram, socket, onRenderComplete }: MermaidDia
       )}
     </div>
   );
-}
+});

@@ -19,6 +19,8 @@ interface VoiceAgentModalProps {
   onListDiagrams?: () => void;
   onSelectDiagram?: (diagramId: number) => void;
   onTalkToDiagram?: (message: string) => void;
+  onSaveDiagramAsMarkdown?: () => void;
+  onSaveDiagramAsImage?: () => void;
 }
 
 function VoiceAssistantStatus() {
@@ -30,6 +32,8 @@ function VoiceAssistantStatus() {
     "Select project XYZ",
     "Select diagram XYZ",
     "Create a mindmap for writing a book",
+    "Save diagram as Markdown",
+    "Save diagram as Image",
     "Goodbye chat"
   ];
 
@@ -103,7 +107,9 @@ export function VoiceAgentModal({
   onCreateDiagram,
   onListDiagrams,
   onSelectDiagram,
-  onTalkToDiagram
+  onTalkToDiagram,
+  onSaveDiagramAsMarkdown,
+  onSaveDiagramAsImage
 }: VoiceAgentModalProps) {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -171,6 +177,16 @@ export function VoiceAgentModal({
         handleDisconnect();
       });
 
+      socket.on('voice-agent:SaveDiagramAsMarkdown', () => {
+        logger.info('SaveDiagramAsMarkdown event');
+        if (onSaveDiagramAsMarkdown) onSaveDiagramAsMarkdown();
+      });
+
+      socket.on('voice-agent:SaveDiagramAsImage', () => {
+        logger.info('SaveDiagramAsImage event');
+        if (onSaveDiagramAsImage) onSaveDiagramAsImage();
+      });
+
       // Listen for backend requests for current project
       socket.on('voice-agent:request-current-project', () => {
         logger.info('Backend requesting current project ID');
@@ -188,10 +204,12 @@ export function VoiceAgentModal({
         socket.off('voice-agent:SelectDiagram');
         socket.off('voice-agent:TalkToDiagram');
         socket.off('voice-agent:StopVoiceChat');
+        socket.off('voice-agent:SaveDiagramAsMarkdown');
+        socket.off('voice-agent:SaveDiagramAsImage');
         socket.off('voice-agent:request-current-project');
       };
     }
-  }, [apiKey, socket, currentProjectId, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram]);
+  }, [apiKey, socket, currentProjectId, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram, onSaveDiagramAsMarkdown, onSaveDiagramAsImage]);
 
   const fetchToken = async () => {
     try {

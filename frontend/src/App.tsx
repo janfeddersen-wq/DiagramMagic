@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { MermaidDiagram } from './components/MermaidDiagram';
+import { MermaidDiagram, MermaidDiagramRef } from './components/MermaidDiagram';
 import { ChatPanel } from './components/ChatPanel';
 import { HelpSection } from './components/HelpSection';
 import { ProjectSelector } from './components/ProjectSelector';
@@ -27,6 +27,7 @@ function App() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const currentValidationRequestRef = useRef<string | null>(null);
+  const mermaidDiagramRef = useRef<MermaidDiagramRef>(null);
   const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
   const [projectsRefreshTrigger, setProjectsRefreshTrigger] = useState(0);
   const [diagramsRefreshTrigger, setDiagramsRefreshTrigger] = useState(0);
@@ -258,6 +259,7 @@ function App() {
               </div>
               <div className="flex-1 relative">
                 <MermaidDiagram
+                  ref={mermaidDiagramRef}
                   diagram={diagram.currentDiagram}
                   socket={socketRef.current || undefined}
                   onRenderComplete={handleRenderComplete}
@@ -372,6 +374,12 @@ function App() {
         }}
         onTalkToDiagram={(message) => {
           chat.sendMessage(message);
+        }}
+        onSaveDiagramAsMarkdown={() => {
+          mermaidDiagramRef.current?.saveAsMarkdown();
+        }}
+        onSaveDiagramAsImage={() => {
+          mermaidDiagramRef.current?.saveAsImage();
         }}
       />
     </div>

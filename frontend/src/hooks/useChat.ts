@@ -3,6 +3,7 @@ import { ChatMessage } from '../types';
 import { generateDiagram } from '../services/api';
 import { getDiagramChatHistory } from '../services/projectsApi';
 import { FileProcessedData } from '../components/FileUpload';
+import { Socket } from 'socket.io-client';
 import { createLogger } from '../utils/logger';
 
 const logger = createLogger('useChat');
@@ -11,7 +12,8 @@ export function useChat(
   currentDiagram: string,
   projectId: number | undefined,
   diagramId: number | undefined,
-  onDiagramUpdate: (mermaidCode: string) => void
+  onDiagramUpdate: (mermaidCode: string) => void,
+  socket?: Socket
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +45,8 @@ export function useChat(
         messages,
         currentDiagram,
         projectId,
-        diagramId
+        diagramId,
+        socket?.id
       );
 
       if (response.success) {
@@ -90,7 +93,8 @@ export function useChat(
           messages,
           currentDiagram,
           projectId,
-          diagramId
+          diagramId,
+          socket?.id
         );
 
         if (response.success) {

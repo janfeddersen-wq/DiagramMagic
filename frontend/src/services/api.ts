@@ -9,7 +9,8 @@ export async function generateDiagram(
   chatHistory: ChatMessage[],
   currentDiagram?: string,
   projectId?: number,
-  diagramId?: number
+  diagramId?: number,
+  socketId?: string
 ): Promise<DiagramResponse> {
   const token = localStorage.getItem('auth_token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -21,7 +22,8 @@ export async function generateDiagram(
       chatHistory: chatHistory.slice(-5), // Send only last 5 messages
       currentDiagram,
       projectId,
-      diagramId
+      diagramId,
+      socketId // Include socket ID for targeted validation
     },
     { headers }
   );

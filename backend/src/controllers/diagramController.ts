@@ -20,7 +20,7 @@ export class DiagramController {
 
   async generateDiagram(req: Request, res: Response): Promise<void> {
     try {
-      const { prompt, chatHistory, currentDiagram, projectId, diagramId }: DiagramRequest & { projectId?: number; diagramId?: number } = req.body;
+      const { prompt, chatHistory, currentDiagram, projectId, diagramId, socketId }: DiagramRequest & { projectId?: number; diagramId?: number; socketId?: string } = req.body;
 
       if (!prompt) {
         res.status(400).json({ error: 'Prompt is required' });
@@ -30,7 +30,8 @@ export class DiagramController {
       const result = await this.agent.generateDiagram(
         prompt,
         chatHistory || [],
-        currentDiagram
+        currentDiagram,
+        socketId
       );
 
       // If projectId and diagramId are provided and user is authenticated, save chat messages

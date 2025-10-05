@@ -40,7 +40,8 @@ function App() {
     diagram.currentDiagram,
     project.currentProject?.id,
     diagram.currentDiagramObj?.id,
-    (code) => diagram.updateDiagram(code, project.isScratchMode)
+    (code) => diagram.updateDiagram(code, project.isScratchMode),
+    socketRef.current || undefined
   );
 
   // Initialize Socket.IO connection

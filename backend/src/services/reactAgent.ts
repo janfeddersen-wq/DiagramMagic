@@ -31,20 +31,21 @@ export class ReactAgent {
   async generateDiagram(
     prompt: string,
     chatHistory: ChatMessage[],
-    currentDiagram?: string
+    currentDiagram?: string,
+    socketId?: string
   ): Promise<DiagramResponse> {
     try {
       let generateResult = await this.generateInitialDiagram(prompt, chatHistory, currentDiagram);
       let cleanedDiagram = this.cleanMermaidCode(generateResult.diagram);
 
       // Validate the diagram if Socket.IO is available
-      if (this.io && cleanedDiagram) {
+      if (this.io && cleanedDiagram && socketId) {
         const maxRetries = 20;
         let attempt = 0;
         let lastError: string | undefined;
 
         while (attempt < maxRetries) {
-          const validationResult = await this.validateDiagramRender(cleanedDiagram);
+          const validationResult = await this.validateDiagramRender(cleanedDiagram, socketId);
 
           if (validationResult.success) {
             // Success! Return the working diagram
@@ -115,7 +116,7 @@ export class ReactAgent {
     return cleaned.trim();
   }
 
-  private async validateDiagramRender(mermaidCode: string): Promise<RenderValidationResponse> {
+  private async validateDiagramRender(mermaidCode: string, socketId: string): Promise<RenderValidationResponse> {
     if (!this.io) {
       return { requestId: '', success: true }; // Skip validation if no Socket.IO
     }
@@ -133,7 +134,17 @@ export class ReactAgent {
       }, 5000); // 5 second timeout
 
       this.renderValidationPromises.set(requestId, { resolve, reject, timeout });
-      this.io!.emit('renderValidationRequest', request);
+
+      // Emit to specific socket instead of broadcasting
+      const socket = this.io!.sockets.sockets.get(socketId);
+      if (socket) {
+        socket.emit('renderValidationRequest', request);
+      } else {
+        // Socket not found, resolve immediately
+        clearTimeout(timeout);
+        this.renderValidationPromises.delete(requestId);
+        resolve({ requestId, success: true });
+      }
     });
   }
 

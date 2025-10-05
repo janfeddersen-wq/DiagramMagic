@@ -29,7 +29,8 @@ function VoiceAssistantStatus() {
     "Add a project named XYZ",
     "Select project XYZ",
     "Select diagram XYZ",
-    "Create a mindmap for writing a book"
+    "Create a mindmap for writing a book",
+    "Goodbye chat"
   ];
 
   return (

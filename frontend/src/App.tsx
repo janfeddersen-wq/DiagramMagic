@@ -136,7 +136,7 @@ function App() {
     return (
       <>
         <WelcomePage onShowAuth={modals.openAuthModal} />
-        <AuthModal isOpen={modals.showAuthModal} onClose={modals.closeAuthModal} />
+        <AuthModal isOpen={modals.showAuthModal} onClose={modals.closeAuthModal} initialMode={modals.authModalMode} />
       </>
     );
   }
@@ -280,7 +280,7 @@ function App() {
       </div>
 
       {/* Auth Modal */}
-      <AuthModal isOpen={modals.showAuthModal} onClose={modals.closeAuthModal} />
+      <AuthModal isOpen={modals.showAuthModal} onClose={modals.closeAuthModal} initialMode={modals.authModalMode} />
 
       {/* Prompt Modal */}
       <PromptModal

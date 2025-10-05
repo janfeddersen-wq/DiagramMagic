@@ -17,6 +17,7 @@ export interface AlertModalState {
 
 export function useModals() {
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
   const [promptModal, setPromptModal] = useState<PromptModalState>({
     isOpen: false,
     title: '',
@@ -31,7 +32,10 @@ export function useModals() {
     type: 'info'
   });
 
-  const openAuthModal = () => setShowAuthModal(true);
+  const openAuthModal = (mode: 'login' | 'signup' = 'login') => {
+    setAuthModalMode(mode);
+    setShowAuthModal(true);
+  };
   const closeAuthModal = () => setShowAuthModal(false);
 
   const openPromptModal = (
@@ -73,6 +77,7 @@ export function useModals() {
   return {
     // Auth modal
     showAuthModal,
+    authModalMode,
     openAuthModal,
     closeAuthModal,
 

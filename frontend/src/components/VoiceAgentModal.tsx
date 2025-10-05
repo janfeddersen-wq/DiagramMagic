@@ -194,7 +194,8 @@ export function VoiceAgentModal({
       setConnecting(true);
       setError('');
 
-      const response = await fetch('http://localhost:3002/token', {
+      const voiceAgentUrl = import.meta.env.VITE_VOICE_AGENT_URL || '/voice-agent';
+      const response = await fetch(`${voiceAgentUrl}/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

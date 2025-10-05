@@ -23,6 +23,7 @@ interface VoiceAgentModalProps {
   onSaveDiagramAsImage?: () => void;
   onOpenHelp?: () => void;
   onCloseHelp?: () => void;
+  currentDiagram?: string;
 }
 
 function VoiceAssistantStatus() {
@@ -113,7 +114,8 @@ export function VoiceAgentModal({
   onSaveDiagramAsMarkdown,
   onSaveDiagramAsImage,
   onOpenHelp,
-  onCloseHelp
+  onCloseHelp,
+  currentDiagram
 }: VoiceAgentModalProps) {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -208,6 +210,13 @@ export function VoiceAgentModal({
         socket.emit('voice-agent:current-project-response', { projectId: currentProjectId });
       });
 
+      // Listen for backend requests for current diagram
+      socket.on('voice-agent:request-current-diagram', () => {
+        logger.info('Backend requesting current diagram');
+        logger.info('Current diagram length:', currentDiagram?.length || 0);
+        socket.emit('voice-agent:current-diagram-response', { diagram: currentDiagram || null });
+      });
+
       return () => {
         socket.off('voice-agent:AddProject');
         socket.off('voice-agent:ListProjects');
@@ -223,9 +232,10 @@ export function VoiceAgentModal({
         socket.off('voice-agent:OpenHelp');
         socket.off('voice-agent:CloseHelp');
         socket.off('voice-agent:request-current-project');
+        socket.off('voice-agent:request-current-diagram');
       };
     }
-  }, [apiKey, socket, currentProjectId, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram, onSaveDiagramAsMarkdown, onSaveDiagramAsImage, onOpenHelp, onCloseHelp]);
+  }, [apiKey, socket, currentProjectId, currentDiagram, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram, onSaveDiagramAsMarkdown, onSaveDiagramAsImage, onOpenHelp, onCloseHelp]);
 
   const fetchToken = async () => {
     try {

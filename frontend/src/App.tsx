@@ -444,6 +444,7 @@ function App() {
         onCloseHelp={() => {
           setHelpModalOpen(false);
         }}
+        currentDiagram={diagram.currentDiagram}
       />
     </div>
   );

@@ -378,6 +378,37 @@ function createCloseHelpTool(apiKey: string) {
   });
 }
 
+function createGetCurrentDiagramTool(apiKey: string) {
+  return llm.tool({
+    description: 'Get the current Mermaid diagram code that is visible to the user for discussion and analysis',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      logger.info('🔧 [TOOL] GetCurrentDiagram called');
+      try {
+        const result = await callBackendTool(apiKey, 'GetCurrentDiagram', {});
+        if (result.diagram) {
+          return JSON.stringify({
+            success: true,
+            diagram: result.diagram,
+            message: `Here is the current diagram code:\n\n${result.diagram}`
+          });
+        } else {
+          return JSON.stringify({
+            success: false,
+            message: 'No diagram is currently visible'
+          });
+        }
+      } catch (error) {
+        logger.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
 // Define the agent
 export default defineAgent({
   entry: async (ctx) => {
@@ -496,6 +527,7 @@ export default defineAgent({
     - SwitchToScratchMode: ONLY when explicitly asked to "switch to scratch mode"
     - CreateDiagram: ONLY when explicitly asked to "create a diagram" or "add a diagram" (requires diagram name)
     - TalkToDiagram: Use this for EVERYTHING ELSE - any request about creating, modifying, or generating diagrams
+    - GetCurrentDiagram: Retrieve the current visible Mermaid diagram code to discuss or analyze it
     - SaveDiagramAsMarkdown: Save current diagram as a Markdown (.md) file
     - SaveDiagramAsImage: Save current diagram as a PNG image file
     - OpenHelp: Open the help/quick start guide modal
@@ -511,6 +543,9 @@ export default defineAgent({
     - "Add error handling to the diagram" → TalkToDiagram
     - "Create a project called MyApp" → AddProject
     - "Create a diagram called UserFlow" → CreateDiagram (explicit diagram creation)
+    - "What's in the current diagram?" → GetCurrentDiagram (then discuss the code)
+    - "Explain this diagram to me" → GetCurrentDiagram (then explain the retrieved code)
+    - "Can you improve the diagram?" → GetCurrentDiagram (get it first, then suggest improvements via TalkToDiagram)
     - "Save diagram as markdown" → SaveDiagramAsMarkdown
     - "Download as image" → SaveDiagramAsImage
     - "Export as PNG" → SaveDiagramAsImage
@@ -555,6 +590,7 @@ export default defineAgent({
         ListDiagrams: createListDiagramsTool(apiKey),
         SelectDiagram: createSelectDiagramTool(apiKey),
         TalkToDiagram: createTalkToDiagramTool(apiKey),
+        GetCurrentDiagram: createGetCurrentDiagramTool(apiKey),
         SaveDiagramAsMarkdown: createSaveDiagramAsMarkdownTool(apiKey),
         SaveDiagramAsImage: createSaveDiagramAsImageTool(apiKey),
         OpenHelp: createOpenHelpTool(apiKey),

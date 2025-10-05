@@ -310,6 +310,52 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
     }
   }
 
+  // Handle GetCurrentDiagram - request current diagram from UI
+  if (toolName === 'GetCurrentDiagram') {
+    try {
+      logger.info('GetCurrentDiagram - Requesting current diagram from UI...');
+
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          logger.warn('GetCurrentDiagram - Timeout waiting for UI response');
+          res.json({
+            success: false,
+            message: 'No diagram is currently visible',
+            diagram: null
+          });
+          resolve();
+        }, 2000);
+
+        socket.once('voice-agent:current-diagram-response', (data: { diagram: string | null }) => {
+          clearTimeout(timeout);
+          logger.debug('GetCurrentDiagram - UI responded with diagram length: ' + (data.diagram?.length || 0));
+
+          if (!data.diagram) {
+            res.json({
+              success: false,
+              message: 'No diagram is currently visible',
+              diagram: null
+            });
+            return resolve();
+          }
+
+          res.json({
+            success: true,
+            diagram: data.diagram,
+            message: 'Current diagram retrieved successfully'
+          });
+          return resolve();
+        });
+
+        // Emit request to UI for current diagram
+        socket.emit('voice-agent:request-current-diagram');
+      });
+    } catch (error) {
+      logger.error('Error getting current diagram:', error);
+      return res.status(500).json({ error: 'Failed to get current diagram' });
+    }
+  }
+
   // Handle SelectProject - update session state
   if (toolName === 'SelectProject') {
     const { projectId } = params || {};

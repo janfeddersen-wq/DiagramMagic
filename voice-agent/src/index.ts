@@ -629,11 +629,25 @@ export default defineAgent({
     - StopVoiceChat: ONLY when user says "stop", "goodbye", "close voice chat", or "end conversation"
 
     CRITICAL RULES:
-    1. ANY request to create, generate, modify, update, or describe a diagram → ALWAYS use TalkToDiagram
+    1. ANY request to create, generate, modify, update, change, or describe a diagram → ALWAYS use TalkToDiagram
     2. If user describes what diagram they want (with or without naming it) → use TalkToDiagram
     3. If user says "create a flowchart/sequence/class diagram" → use TalkToDiagram (NOT CreateDiagram)
     4. If user says "create a diagram called X showing Y" → use TalkToDiagram with message "create a diagram called X showing Y"
     5. CreateDiagram is ONLY for creating empty placeholder diagrams, which is almost never needed
+    6. NEVER answer diagram modification requests yourself - ALWAYS route them to TalkToDiagram
+    7. DO NOT discuss or explain how to modify diagrams - just call TalkToDiagram with the user's exact request
+
+    DIAGRAM MODIFICATION PATTERNS (ALL use TalkToDiagram):
+    - "change X to Y" → TalkToDiagram("change X to Y")
+    - "make X bigger/smaller" → TalkToDiagram("make X bigger/smaller")
+    - "update value from A to B" → TalkToDiagram("update value from A to B")
+    - "increase/decrease X" → TalkToDiagram("increase/decrease X")
+    - "set X to Y" → TalkToDiagram("set X to Y")
+    - "add X to the diagram" → TalkToDiagram("add X to the diagram")
+    - "remove X from the diagram" → TalkToDiagram("remove X from the diagram")
+    - "replace X with Y" → TalkToDiagram("replace X with Y")
+    - "make X 5 times bigger" → TalkToDiagram("make X 5 times bigger")
+    - "change the value from D to 5" → TalkToDiagram("change the value from D to 5")
 
     Examples:
     - "Create a flowchart for login" → TalkToDiagram("Create a flowchart for login")
@@ -641,6 +655,10 @@ export default defineAgent({
     - "Make a diagram called UserFlow for authentication" → TalkToDiagram("Make a diagram called UserFlow for authentication")
     - "Create a class diagram with User and Order classes" → TalkToDiagram("Create a class diagram with User and Order classes")
     - "Add error handling to the diagram" → TalkToDiagram("Add error handling to the diagram")
+    - "Change the value from D to 5" → TalkToDiagram("Change the value from D to 5")
+    - "Make X 5 times bigger" → TalkToDiagram("Make X 5 times bigger")
+    - "Update the flowchart to include validation" → TalkToDiagram("Update the flowchart to include validation")
+    - "Set the bar for January to 100" → TalkToDiagram("Set the bar for January to 100")
     - "Create a project called MyApp" → AddProject("MyApp")
     - "What's in the current diagram?" → GetCurrentDiagram (then discuss the code)
     - "Explain this diagram to me" → GetCurrentDiagram (then explain the retrieved code)

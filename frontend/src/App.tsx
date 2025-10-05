@@ -105,6 +105,21 @@ function App() {
     setVoiceAgentOpen(isActive);
   };
 
+  // Keyboard shortcut for voice agent (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        if (isAuthenticated) {
+          setVoiceAgentOpen(prev => !prev);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAuthenticated]);
+
   if (authLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -155,10 +170,15 @@ function App() {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <>
-                <VoiceAgentButton
-                  onToggle={handleVoiceAgentToggle}
-                  isActive={voiceAgentOpen}
-                />
+                <div className="flex items-center gap-2">
+                  <VoiceAgentButton
+                    onToggle={handleVoiceAgentToggle}
+                    isActive={voiceAgentOpen}
+                  />
+                  <span className="text-xs text-gray-500">
+                    Press <kbd className="px-1.5 py-0.5 bg-gray-200 border border-gray-300 rounded text-xs font-mono">⌘K</kbd> to start
+                  </span>
+                </div>
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">{user?.name[0].toUpperCase()}</span>

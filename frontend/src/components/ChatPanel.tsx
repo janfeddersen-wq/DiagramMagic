@@ -14,12 +14,8 @@ interface ChatPanelProps {
 export function ChatPanel({ messages, onSendMessage, onFileProcessed, onClearChat, isLoading }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [fileError, setFileError] = useState<string>('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileUploadRef = useRef<{ triggerUpload: (file: File) => void }>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -52,71 +48,6 @@ export function ChatPanel({ messages, onSendMessage, onFileProcessed, onClearCha
     }
   };
 
-  const handleVoiceInput = async () => {
-    if (isRecording) {
-      // Stop recording
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop();
-        setIsRecording(false);
-      }
-    } else {
-      // Start recording
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-          }
-        };
-
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          stream.getTracks().forEach(track => track.stop());
-
-          // Send to backend for transcription
-          setIsTranscribing(true);
-          try {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'recording.webm');
-
-            const response = await fetch('/api/transcribe', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (!response.ok) {
-              throw new Error('Transcription failed');
-            }
-
-            const data = await response.json();
-            const transcribedText = data.text;
-
-            // Send the transcribed text immediately
-            if (transcribedText.trim() && !isLoading) {
-              onSendMessage(transcribedText);
-            }
-          } catch (error) {
-            console.error('Transcription error:', error);
-            setFileError('Failed to transcribe audio. Please try again.');
-            setTimeout(() => setFileError(''), 5000);
-          } finally {
-            setIsTranscribing(false);
-          }
-        };
-
-        mediaRecorder.start();
-        setIsRecording(true);
-      } catch (error) {
-        console.error('Error accessing microphone:', error);
-        setFileError('Failed to access microphone. Please check permissions.');
-        setTimeout(() => setFileError(''), 5000);
-      }
-    }
-  };
 
   return (
     <div className="h-full flex flex-col">
@@ -215,33 +146,12 @@ export function ChatPanel({ messages, onSendMessage, onFileProcessed, onClearCha
             onChange={(e) => setInput(e.target.value)}
             onPaste={handlePaste}
             placeholder="Ask me to create or modify a diagram (or paste an image)..."
-            disabled={isLoading || isTranscribing}
+            disabled={isLoading}
             className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed transition-all"
           />
           <button
-            type="button"
-            onClick={handleVoiceInput}
-            disabled={isLoading || isTranscribing}
-            className={`px-4 py-3 rounded-xl transition-all font-medium ${
-              isRecording
-                ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-                : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-            title={isRecording ? 'Stop recording' : 'Start voice input'}
-          >
-            {isTranscribing ? (
-              <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill={isRecording ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-            )}
-          </button>
-          <button
             type="submit"
-            disabled={!input.trim() || isLoading || isTranscribing}
+            disabled={!input.trim() || isLoading}
             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20 disabled:shadow-none font-medium"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

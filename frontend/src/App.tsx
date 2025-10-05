@@ -96,57 +96,6 @@ function App() {
     });
   };
 
-  const handleSaveToProject = async () => {
-    if (!isAuthenticated) {
-      modals.openAuthModal();
-      return;
-    }
-
-    modals.openPromptModal(
-      'Create New Project',
-      'Enter project name:',
-      async (projectName) => {
-        if (!projectName) return;
-
-        modals.openPromptModal(
-          'Create Diagram',
-          'Enter diagram name:',
-          async (diagramName) => {
-            try {
-              const newProject = await createProject(projectName);
-              const diagramResult = await createDiagram(
-                newProject.id,
-                diagramName || 'Untitled Diagram',
-                diagram.currentDiagram
-              );
-
-              project.selectProject(newProject, () => {}, () => {});
-              diagram.setDiagramState(
-                diagramResult.diagram,
-                diagramResult.version,
-                diagram.currentDiagram
-              );
-
-              modals.openAlertModal(
-                'Success',
-                'Saved to project successfully!',
-                'success'
-              );
-            } catch (error) {
-              console.error('Failed to save to project:', error);
-              modals.openAlertModal(
-                'Error',
-                'Failed to save to project',
-                'error'
-              );
-            }
-          },
-          'Untitled Diagram'
-        );
-      }
-    );
-  };
-
   const handleClearChat = () => {
     chat.clearChat();
     diagram.updateDiagram('', project.isScratchMode);
@@ -243,7 +192,7 @@ function App() {
       <HelpSection onPromptClick={chat.sendMessage} />
 
       {/* Scratch Mode Warning */}
-      {project.isScratchMode && <ScratchModeWarning onSaveToProject={handleSaveToProject} />}
+      {project.isScratchMode && <ScratchModeWarning />}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
@@ -334,6 +283,7 @@ function App() {
         isOpen={voiceAgentOpen}
         onClose={() => setVoiceAgentOpen(false)}
         socket={socketRef.current || undefined}
+        currentProjectId={project.currentProject?.id || null}
         onAddProject={async (name) => {
           if (!isAuthenticated) {
             modals.openAuthModal();

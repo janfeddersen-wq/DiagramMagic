@@ -1,10 +1,6 @@
 import { useState } from 'react';
 
-interface ScratchModeWarningProps {
-  onSaveToProject: () => void;
-}
-
-export function ScratchModeWarning({ onSaveToProject }: ScratchModeWarningProps) {
+export function ScratchModeWarning() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   if (isDismissed) return null;
@@ -28,12 +24,6 @@ export function ScratchModeWarning({ onSaveToProject }: ScratchModeWarningProps)
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={onSaveToProject}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
-          >
-            Save to Project
-          </button>
           <button
             onClick={() => setIsDismissed(true)}
             className="p-1 text-orange-600 hover:bg-orange-100 rounded transition-colors"

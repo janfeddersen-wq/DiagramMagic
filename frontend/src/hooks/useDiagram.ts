@@ -5,6 +5,7 @@ export function useDiagram() {
   const [currentDiagram, setCurrentDiagram] = useState<string>('');
   const [currentDiagramObj, setCurrentDiagramObj] = useState<Diagram | null>(null);
   const [currentVersion, setCurrentVersion] = useState<DiagramVersion | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const updateDiagram = async (mermaidCode: string, isScratchMode: boolean) => {
     setCurrentDiagram(mermaidCode);
@@ -25,16 +26,28 @@ export function useDiagram() {
       setCurrentDiagramObj(null);
       setCurrentVersion(null);
       setCurrentDiagram('');
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     setCurrentDiagramObj(diagram);
 
     // Load full diagram with versions
-    const fullDiagram = await getDiagram(diagram.id);
-    if (fullDiagram.latestVersion) {
-      setCurrentVersion(fullDiagram.latestVersion);
-      setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
+    try {
+      const fullDiagram = await getDiagram(diagram.id);
+      if (fullDiagram.latestVersion) {
+        setCurrentVersion(fullDiagram.latestVersion);
+        setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
+      }
+    } catch (error) {
+      console.error('Failed to load diagram:', error);
+      // Reset state on error
+      setCurrentDiagramObj(null);
+      setCurrentVersion(null);
+      setCurrentDiagram('');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -56,11 +69,22 @@ export function useDiagram() {
   };
 
   const loadDiagram = async (diagramId: number) => {
-    const fullDiagram = await getDiagram(diagramId);
-    if (fullDiagram.latestVersion) {
-      setCurrentDiagramObj(fullDiagram.diagram);
-      setCurrentVersion(fullDiagram.latestVersion);
-      setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
+    setIsLoading(true);
+    try {
+      const fullDiagram = await getDiagram(diagramId);
+      if (fullDiagram.latestVersion) {
+        setCurrentDiagramObj(fullDiagram.diagram);
+        setCurrentVersion(fullDiagram.latestVersion);
+        setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
+      }
+    } catch (error) {
+      console.error('Failed to load diagram:', error);
+      // Reset state on error
+      setCurrentDiagramObj(null);
+      setCurrentVersion(null);
+      setCurrentDiagram('');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -68,6 +92,7 @@ export function useDiagram() {
     currentDiagram,
     currentDiagramObj,
     currentVersion,
+    isLoading,
     updateDiagram,
     selectDiagram,
     selectVersion,

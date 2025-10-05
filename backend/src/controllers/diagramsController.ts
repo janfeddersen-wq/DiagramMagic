@@ -5,10 +5,12 @@ export class DiagramsController {
   async listByProject(req: Request, res: Response) {
     try {
       if (!req.user) {
+        console.error('[DiagramsController] List diagrams - Not authenticated');
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
       const projectId = parseInt(req.params.projectId);
+      console.log(`[DiagramsController] Listing diagrams for project ${projectId}, user ${req.user.userId}`);
 
       // Verify project ownership
       const project = await db
@@ -19,6 +21,7 @@ export class DiagramsController {
         .executeTakeFirst();
 
       if (!project) {
+        console.error(`[DiagramsController] Project ${projectId} not found or not owned by user ${req.user.userId}`);
         return res.status(404).json({ error: 'Project not found' });
       }
 
@@ -29,9 +32,10 @@ export class DiagramsController {
         .orderBy('updated_at', 'desc')
         .execute();
 
+      console.log(`[DiagramsController] Found ${diagrams.length} diagrams for project ${projectId}`);
       return res.json({ diagrams });
     } catch (error) {
-      console.error('List diagrams error:', error);
+      console.error('[DiagramsController] List diagrams error:', error);
       return res.status(500).json({ error: 'Failed to list diagrams' });
     }
   }
@@ -93,10 +97,12 @@ export class DiagramsController {
   async get(req: Request, res: Response) {
     try {
       if (!req.user) {
+        console.error('[DiagramsController] Get diagram - Not authenticated');
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
       const diagramId = parseInt(req.params.id);
+      console.log(`[DiagramsController] Getting diagram ${diagramId} for user ${req.user.userId}`);
 
       // Get diagram with project ownership verification
       const diagram = await db
@@ -108,6 +114,7 @@ export class DiagramsController {
         .executeTakeFirst();
 
       if (!diagram) {
+        console.error(`[DiagramsController] Diagram ${diagramId} not found or not owned by user ${req.user.userId}`);
         return res.status(404).json({ error: 'Diagram not found' });
       }
 
@@ -120,9 +127,10 @@ export class DiagramsController {
         .limit(1)
         .executeTakeFirst();
 
+      console.log(`[DiagramsController] Found diagram ${diagramId} with version ${latestVersion?.version || 'none'}`);
       return res.json({ diagram, latestVersion });
     } catch (error) {
-      console.error('Get diagram error:', error);
+      console.error('[DiagramsController] Get diagram error:', error);
       return res.status(500).json({ error: 'Failed to get diagram' });
     }
   }

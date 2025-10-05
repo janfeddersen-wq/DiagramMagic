@@ -81,6 +81,16 @@ const upload = multer({
 app.use(cors());
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
+  });
+  next();
+});
+
 // Initialize controllers
 const diagramController = new DiagramController(process.env.CEREBRAS_API_KEY, cerebrasModel, io);
 const fileController = new FileController({
@@ -240,30 +250,53 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
     }
   }
 
-  // Handle ListDiagrams specially - return data for the agent to speak
+  // Handle ListDiagrams specially - ask UI for current project, then return diagrams
   if (toolName === 'ListDiagrams') {
     try {
-      // Get current project ID from session
-      const projectId = session.currentProjectId;
-      if (!projectId) {
-        return res.json({
-          success: false,
-          message: 'No project selected. Please select a project first.',
-          diagrams: []
+      console.log('🎯 [BACKEND] ListDiagrams - Requesting current project from UI...');
+
+      // Ask the UI what project is currently selected
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log('🎯 [BACKEND] ListDiagrams - Timeout waiting for UI response');
+          resolve(res.json({
+            success: false,
+            message: 'No project selected. Please select a project first.',
+            diagrams: []
+          }));
+        }, 2000);
+
+        socket.once('voice-agent:current-project-response', async (data: { projectId: number | null }) => {
+          clearTimeout(timeout);
+          console.log('🎯 [BACKEND] ListDiagrams - UI responded with project:', data.projectId);
+
+          if (!data.projectId) {
+            console.log('🎯 [BACKEND] ListDiagrams - No project selected in UI');
+            return resolve(res.json({
+              success: false,
+              message: 'No project selected. Please select a project first.',
+              diagrams: []
+            }));
+          }
+
+          console.log('🎯 [BACKEND] ListDiagrams - Querying diagrams for project:', data.projectId);
+          const diagrams = await db
+            .selectFrom('diagrams')
+            .selectAll()
+            .where('project_id', '=', data.projectId)
+            .orderBy('updated_at', 'desc')
+            .execute();
+
+          console.log('🎯 [BACKEND] ListDiagrams - Found diagrams:', diagrams.length);
+
+          return resolve(res.json({
+            success: true,
+            diagrams: diagrams.map(d => ({ id: d.id, name: d.name }))
+          }));
         });
-      }
 
-      const diagrams = await db
-        .selectFrom('diagrams')
-        .selectAll()
-        .where('project_id', '=', projectId)
-        .orderBy('updated_at', 'desc')
-        .execute();
-
-      // Return diagrams list for the agent to speak
-      return res.json({
-        success: true,
-        diagrams: diagrams.map(d => ({ id: d.id, name: d.name }))
+        // Emit request to UI for current project
+        socket.emit('voice-agent:request-current-project');
       });
     } catch (error) {
       console.error('🎯 [BACKEND] Error listing diagrams:', error);

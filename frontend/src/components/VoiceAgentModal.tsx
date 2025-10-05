@@ -7,6 +7,7 @@ interface VoiceAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
   socket?: Socket; // Main app Socket.IO instance
+  currentProjectId?: number | null; // Current project ID from UI
   onAddProject?: (name: string) => void;
   onListProjects?: () => void;
   onSelectProject?: (projectId: number) => void;
@@ -19,6 +20,14 @@ interface VoiceAgentModalProps {
 
 function VoiceAssistantStatus() {
   const { state, audioTrack } = useVoiceAssistant();
+
+  const examples = [
+    "What projects do we have?",
+    "Add a project named XYZ",
+    "Select project XYZ",
+    "Select diagram XYZ",
+    "Create a mindmap for writing a book"
+  ];
 
   return (
     <div className="voice-assistant-status">
@@ -38,13 +47,42 @@ function VoiceAssistantStatus() {
         </span>
       </div>
 
+      {/* Audio visualization - nicer ripple effect */}
       {audioTrack && (
-        <div className="flex gap-1 justify-center">
-          <div className="w-1 h-8 bg-blue-500 animate-pulse"></div>
-          <div className="w-1 h-12 bg-blue-500 animate-pulse" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-1 h-6 bg-blue-500 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+        <div className="flex gap-1.5 justify-center items-end h-16 mb-4">
+          {[...Array(5)].map((_, i) => (
+            <div
+              key={i}
+              className="w-1.5 bg-gradient-to-t from-blue-600 to-blue-400 rounded-full"
+              style={{
+                animation: `audioBar 0.8s ease-in-out infinite`,
+                animationDelay: `${i * 0.1}s`,
+                height: '20%'
+              }}
+            />
+          ))}
         </div>
       )}
+
+      {/* Example commands */}
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <p className="text-xs font-semibold text-gray-600 mb-2">Try saying:</p>
+        <div className="space-y-1.5">
+          {examples.map((example, i) => (
+            <div key={i} className="text-xs text-gray-500 flex items-start gap-2">
+              <span className="text-blue-500 mt-0.5">•</span>
+              <span>"{example}"</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes audioBar {
+          0%, 100% { height: 20%; }
+          50% { height: 80%; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -53,6 +91,7 @@ export function VoiceAgentModal({
   isOpen,
   onClose,
   socket,
+  currentProjectId,
   onAddProject,
   onListProjects,
   onSelectProject,
@@ -128,6 +167,13 @@ export function VoiceAgentModal({
         handleDisconnect();
       });
 
+      // Listen for backend requests for current project
+      socket.on('voice-agent:request-current-project', () => {
+        console.log('✅ [UI] Backend requesting current project ID');
+        console.log('✅ [UI] Current project ID:', currentProjectId);
+        socket.emit('voice-agent:current-project-response', { projectId: currentProjectId });
+      });
+
       return () => {
         socket.off('voice-agent:AddProject');
         socket.off('voice-agent:ListProjects');
@@ -138,9 +184,10 @@ export function VoiceAgentModal({
         socket.off('voice-agent:SelectDiagram');
         socket.off('voice-agent:TalkToDiagram');
         socket.off('voice-agent:StopVoiceChat');
+        socket.off('voice-agent:request-current-project');
       };
     }
-  }, [apiKey, socket, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram]);
+  }, [apiKey, socket, currentProjectId, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram]);
 
   const fetchToken = async () => {
     try {

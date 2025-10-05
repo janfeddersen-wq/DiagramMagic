@@ -593,4 +593,4 @@ For issues, questions, or contributions:
 - Review example prompts in the app
 
 ## KNOWN ISSUES
-- Draw.io does not cleanly accept certain types or mermaid diagrams .... have to debug draw.io for that. Documentation says its fine (https://github.com/jgraph/drawio/issues/5290)
+- Draw.io does not cleanly accept certain types or mermaid diagrams .... have to debug draw.io for that. Flowchart is fine Documentation says its fine (https://github.com/jgraph/drawio/issues/5290)

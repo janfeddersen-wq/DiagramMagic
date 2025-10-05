@@ -363,7 +363,7 @@ export default defineAgent({
     global.fetch = async (url: any, init?: any) => {
       const urlString = typeof url === 'string' ? url : url.toString();
 
-      if (urlString.includes('cerebras.ai')) {
+      if (urlString.includes('cerebras')) {
         console.log('🌐 [CEREBRAS REQUEST INTERCEPTED]');
         console.log('🌐 URL:', urlString);
         console.log('🌐 Method:', init?.method || 'GET');

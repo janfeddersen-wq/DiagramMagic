@@ -376,6 +376,15 @@ export default defineAgent({
       apiKey: process.env.DEEPGRAM_API_KEY,
     });
 
+    // Add STT event listeners for debugging
+    stt.on('metrics_collected', (metrics: any) => {
+      console.log('📊 STT metrics:', JSON.stringify(metrics));
+    });
+
+    stt.on('error', (error: any) => {
+      console.error('❌ STT error:', error);
+    });
+
     console.log('🎤 STT initialized with Deepgram');
     console.log('🎤 Deepgram API key:', process.env.DEEPGRAM_API_KEY ? 'present' : 'missing');
 

@@ -649,9 +649,11 @@ export default defineAgent({
     - "change the value from D to 5" → TalkToDiagram("change the value from D to 5")
 
     Examples:
+    - "Create a new diagram called super duper test" → CreateDiagram("super duper test")
+    - "Create a diagram named UserFlow" → CreateDiagram("UserFlow")
     - "Create a flowchart for login" → TalkToDiagram("Create a flowchart for login")
     - "Show me a sequence diagram" → TalkToDiagram("Show me a sequence diagram")
-    - "Make a diagram called UserFlow for authentication" → TalkToDiagram("Make a diagram called UserFlow for authentication")
+    - "Make a diagram called UserFlow showing authentication" → CreateDiagram("UserFlow"), then TalkToDiagram("create a flowchart showing authentication")
     - "Create a class diagram with User and Order classes" → TalkToDiagram("Create a class diagram with User and Order classes")
     - "Add error handling to the diagram" → TalkToDiagram("Add error handling to the diagram")
     - "Change the value from D to 5" → TalkToDiagram("Change the value from D to 5")

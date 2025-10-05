@@ -358,6 +358,48 @@ export default defineAgent({
       console.warn('⚠️  No API key found in participant metadata - UI tools will not work');
     }
 
+    // Intercept global fetch to log Cerebras requests
+    const originalFetch = global.fetch;
+    global.fetch = async (url: any, init?: any) => {
+      const urlString = typeof url === 'string' ? url : url.toString();
+
+      if (urlString.includes('cerebras.ai')) {
+        console.log('🌐 [CEREBRAS REQUEST INTERCEPTED]');
+        console.log('🌐 URL:', urlString);
+        console.log('🌐 Method:', init?.method || 'GET');
+
+        if (init?.body) {
+          console.log('🌐 Raw Body:', init.body);
+          try {
+            const bodyObj = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
+            console.log('🌐 Messages count:', bodyObj.messages?.length || 0);
+            console.log('🌐 Model:', bodyObj.model);
+            console.log('🌐 Tools:', bodyObj.tools?.length || 0);
+            console.log('🌐 Stream:', bodyObj.stream);
+
+            if (bodyObj.messages && bodyObj.messages.length > 0) {
+              console.log('🌐 === MESSAGES ===');
+              bodyObj.messages.forEach((msg: any, i: number) => {
+                console.log(`🌐 [${i}] ${msg.role}:`, JSON.stringify(msg.content || msg).slice(0, 500));
+              });
+            } else {
+              console.log('🌐 ⚠️  NO MESSAGES IN REQUEST!');
+            }
+          } catch (e) {
+            console.log('🌐 Failed to parse body:', e);
+          }
+        }
+      }
+
+      const response = await originalFetch(url, init);
+
+      if (urlString.includes('cerebras.ai')) {
+        console.log('🌐 [CEREBRAS RESPONSE] Status:', response.status, response.statusText);
+      }
+
+      return response;
+    };
+
     // Initialize components
     console.log('🤖 Initializing LLM...');
     console.log('🤖 Model:', process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b');
@@ -369,32 +411,6 @@ export default defineAgent({
       apiKey: process.env.CEREBRAS_API_KEY,
       toolChoice: 'auto',
       parallelToolCalls: false,
-      // Add fetch interceptor to log requests
-      fetch: async (url: any, init: any) => {
-        console.log('🌐 [CEREBRAS REQUEST]');
-        console.log('🌐 URL:', url);
-        console.log('🌐 Method:', init?.method);
-        if (init?.body) {
-          console.log('🌐 Request Body:', init.body);
-          try {
-            const bodyObj = JSON.parse(init.body);
-            console.log('🌐 Messages count:', bodyObj.messages?.length || 0);
-            console.log('🌐 Model:', bodyObj.model);
-            console.log('🌐 Tools count:', bodyObj.tools?.length || 0);
-            console.log('🌐 Stream:', bodyObj.stream);
-            if (bodyObj.messages) {
-              bodyObj.messages.forEach((msg: any, i: number) => {
-                console.log(`🌐 Msg[${i}] role=${msg.role}:`, JSON.stringify(msg.content).slice(0, 300));
-              });
-            }
-          } catch (e) {
-            console.log('🌐 Body parse error:', e);
-          }
-        }
-        const response = await fetch(url, init);
-        console.log('🌐 [CEREBRAS RESPONSE] Status:', response.status, response.statusText);
-        return response;
-      }
     });
 
     const stt = new STT({

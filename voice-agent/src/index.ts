@@ -493,7 +493,25 @@ export default defineAgent({
     });
 
     session.on('user_speech_committed', (msg: any) => {
-      console.log('💬 User speech transcribed:', JSON.stringify(msg));
+      console.log('💬 User speech committed:', JSON.stringify(msg));
+    });
+
+    // Add more detailed debugging events
+    session.on('function_calls_collected', (calls: any) => {
+      console.log('🔧 Function calls collected:', JSON.stringify(calls));
+    });
+
+    session.on('function_calls_finished', (result: any) => {
+      console.log('✅ Function calls finished:', JSON.stringify(result));
+    });
+
+    // Add LLM debugging
+    llmInstance.on('metrics_collected', (metrics: any) => {
+      console.log('📊 LLM metrics:', JSON.stringify(metrics));
+    });
+
+    llmInstance.on('error', (error: any) => {
+      console.error('❌ LLM error:', error);
     });
 
     await session.start({

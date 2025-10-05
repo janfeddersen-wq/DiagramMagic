@@ -369,7 +369,6 @@ export default defineAgent({
       apiKey: process.env.CEREBRAS_API_KEY,
       toolChoice: 'auto',
       parallelToolCalls: false,
-      thinking: false,
     });
 
     const stt = new STT({

@@ -413,6 +413,27 @@ export default defineAgent({
       parallelToolCalls: false,
     });
 
+    // Intercept the OpenAI client's fetch method
+    const llmClient = (llmInstance as any).client;
+    if (llmClient && llmClient.fetch) {
+      const originalClientFetch = llmClient.fetch.bind(llmClient);
+      llmClient.fetch = async (url: string, init?: any) => {
+        console.log('🌐 [OPENAI CLIENT FETCH]');
+        console.log('🌐 URL:', url);
+        if (init?.body) {
+          const bodyStr = init.body.toString();
+          console.log('🌐 Body length:', bodyStr.length);
+          console.log('🌐 Full Body:', bodyStr);
+        }
+        const response = await originalClientFetch(url, init);
+        console.log('🌐 Response status:', response.status);
+        return response;
+      };
+      console.log('✅ LLM client fetch intercepted');
+    } else {
+      console.warn('⚠️  Could not intercept LLM client fetch');
+    }
+
     const stt = new STT({
       apiKey: process.env.DEEPGRAM_API_KEY,
       model: 'nova-2',

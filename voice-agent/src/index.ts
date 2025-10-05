@@ -629,13 +629,12 @@ export default defineAgent({
     - StopVoiceChat: ONLY when user says "stop", "goodbye", "close voice chat", or "end conversation"
 
     CRITICAL RULES:
-    1. ANY request to create, generate, modify, update, change, or describe a diagram → ALWAYS use TalkToDiagram
-    2. If user describes what diagram they want (with or without naming it) → use TalkToDiagram
-    3. If user says "create a flowchart/sequence/class diagram" → use TalkToDiagram (NOT CreateDiagram)
-    4. If user says "create a diagram called X showing Y" → use TalkToDiagram with message "create a diagram called X showing Y"
-    5. CreateDiagram is ONLY for creating empty placeholder diagrams, which is almost never needed
-    6. NEVER answer diagram modification requests yourself - ALWAYS route them to TalkToDiagram
-    7. DO NOT discuss or explain how to modify diagrams - just call TalkToDiagram with the user's exact request
+    1. If user wants to CREATE A NAMED DIAGRAM in a project (e.g., "create a diagram called X") → use CreateDiagram with the name
+    2. If user wants to GENERATE DIAGRAM CONTENT or describes what they want (e.g., "create a flowchart showing login") → use TalkToDiagram
+    3. If user says both name AND content (e.g., "create a diagram called UserFlow showing authentication") → First CreateDiagram("UserFlow"), then TalkToDiagram("create a flowchart showing authentication")
+    4. ANY request to modify, update, change a diagram → ALWAYS use TalkToDiagram
+    5. NEVER answer diagram modification requests yourself - ALWAYS route them to TalkToDiagram
+    6. DO NOT discuss or explain how to modify diagrams - just call TalkToDiagram with the user's exact request
 
     DIAGRAM MODIFICATION PATTERNS (ALL use TalkToDiagram):
     - "change X to Y" → TalkToDiagram("change X to Y")

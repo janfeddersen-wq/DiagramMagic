@@ -9,6 +9,7 @@ import { STT } from '@livekit/agents-plugin-deepgram';
 import { TTS } from '@livekit/agents-plugin-cartesia';
 import { VAD } from '@livekit/agents-plugin-silero';
 import { fileURLToPath } from 'url';
+import OpenAI from 'openai';
 
 // Backend URL for tool calls
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
@@ -406,7 +407,6 @@ export default defineAgent({
     console.log('🤖 Cerebras API Key:', process.env.CEREBRAS_API_KEY ? 'present' : 'MISSING');
 
     // Create OpenAI client with intercepted fetch
-    const OpenAI = require('openai').OpenAI;
     const openaiClient = new OpenAI({
       baseURL: 'https://api.cerebras.ai/v1',
       apiKey: process.env.CEREBRAS_API_KEY,

@@ -369,6 +369,32 @@ export default defineAgent({
       apiKey: process.env.CEREBRAS_API_KEY,
       toolChoice: 'auto',
       parallelToolCalls: false,
+      // Add fetch interceptor to log requests
+      fetch: async (url: any, init: any) => {
+        console.log('🌐 [CEREBRAS REQUEST]');
+        console.log('🌐 URL:', url);
+        console.log('🌐 Method:', init?.method);
+        if (init?.body) {
+          console.log('🌐 Request Body:', init.body);
+          try {
+            const bodyObj = JSON.parse(init.body);
+            console.log('🌐 Messages count:', bodyObj.messages?.length || 0);
+            console.log('🌐 Model:', bodyObj.model);
+            console.log('🌐 Tools count:', bodyObj.tools?.length || 0);
+            console.log('🌐 Stream:', bodyObj.stream);
+            if (bodyObj.messages) {
+              bodyObj.messages.forEach((msg: any, i: number) => {
+                console.log(`🌐 Msg[${i}] role=${msg.role}:`, JSON.stringify(msg.content).slice(0, 300));
+              });
+            }
+          } catch (e) {
+            console.log('🌐 Body parse error:', e);
+          }
+        }
+        const response = await fetch(url, init);
+        console.log('🌐 [CEREBRAS RESPONSE] Status:', response.status, response.statusText);
+        return response;
+      }
     });
 
     const stt = new STT({

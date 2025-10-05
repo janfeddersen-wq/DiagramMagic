@@ -24,6 +24,10 @@ interface VoiceAgentModalProps {
   onOpenHelp?: () => void;
   onCloseHelp?: () => void;
   currentDiagram?: string;
+  currentVersion?: { version: number } | null;
+  totalVersions?: number;
+  onSelectVersion?: (versionNumber: number) => void;
+  onShowVersionHistory?: () => void;
 }
 
 function VoiceAssistantStatus() {
@@ -36,7 +40,9 @@ function VoiceAssistantStatus() {
     "Select diagram XYZ",
     "Create a mindmap for writing a book",
     "Save diagram as Markdown",
-    "Save diagram as Image",
+    "What version am I on?",
+    "Show version history",
+    "Go to version 3",
     "Goodbye chat"
   ];
 
@@ -115,7 +121,11 @@ export function VoiceAgentModal({
   onSaveDiagramAsImage,
   onOpenHelp,
   onCloseHelp,
-  currentDiagram
+  currentDiagram,
+  currentVersion,
+  totalVersions,
+  onSelectVersion,
+  onShowVersionHistory
 }: VoiceAgentModalProps) {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -217,6 +227,28 @@ export function VoiceAgentModal({
         socket.emit('voice-agent:current-diagram-response', { diagram: currentDiagram || null });
       });
 
+      // Listen for backend requests for current version
+      socket.on('voice-agent:request-current-version', () => {
+        logger.info('Backend requesting current version');
+        logger.info('Current version:', currentVersion?.version, 'Total:', totalVersions);
+        socket.emit('voice-agent:current-version-response', {
+          currentVersion: currentVersion?.version || null,
+          totalVersions: totalVersions || 0
+        });
+      });
+
+      // Listen for version selection requests
+      socket.on('voice-agent:SelectDiagramVersion', (params: { versionNumber: number }) => {
+        logger.info('SelectDiagramVersion event:', params);
+        if (onSelectVersion) onSelectVersion(params.versionNumber);
+      });
+
+      // Listen for show version history request
+      socket.on('voice-agent:ShowVersionHistory', () => {
+        logger.info('ShowVersionHistory event');
+        if (onShowVersionHistory) onShowVersionHistory();
+      });
+
       return () => {
         socket.off('voice-agent:AddProject');
         socket.off('voice-agent:ListProjects');
@@ -233,9 +265,12 @@ export function VoiceAgentModal({
         socket.off('voice-agent:CloseHelp');
         socket.off('voice-agent:request-current-project');
         socket.off('voice-agent:request-current-diagram');
+        socket.off('voice-agent:request-current-version');
+        socket.off('voice-agent:SelectDiagramVersion');
+        socket.off('voice-agent:ShowVersionHistory');
       };
     }
-  }, [apiKey, socket, currentProjectId, currentDiagram, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram, onSaveDiagramAsMarkdown, onSaveDiagramAsImage, onOpenHelp, onCloseHelp]);
+  }, [apiKey, socket, currentProjectId, currentDiagram, currentVersion, totalVersions, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram, onSaveDiagramAsMarkdown, onSaveDiagramAsImage, onOpenHelp, onCloseHelp, onSelectVersion, onShowVersionHistory]);
 
   const fetchToken = async () => {
     try {

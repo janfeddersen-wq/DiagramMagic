@@ -33,6 +33,8 @@ function App() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [projectsRefreshTrigger, setProjectsRefreshTrigger] = useState(0);
   const [diagramsRefreshTrigger, setDiagramsRefreshTrigger] = useState(0);
+  const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const [totalVersions, setTotalVersions] = useState(0);
 
   // Custom hooks for state management
   const project = useProject();
@@ -110,6 +112,39 @@ function App() {
 
   const handleVoiceAgentToggle = (isActive: boolean) => {
     setVoiceAgentOpen(isActive);
+  };
+
+  // Load total versions when diagram changes
+  useEffect(() => {
+    const loadTotalVersions = async () => {
+      if (diagram.currentDiagramObj?.id) {
+        try {
+          const versions = await import('./services/projectsApi').then(m => m.listDiagramVersions(diagram.currentDiagramObj!.id));
+          setTotalVersions(versions.length);
+        } catch (error) {
+          console.error('Failed to load total versions:', error);
+        }
+      }
+    };
+    loadTotalVersions();
+  }, [diagram.currentDiagramObj?.id, diagram.versionRefreshTrigger]);
+
+  // Handle version selection by version number
+  const handleSelectVersionByNumber = async (versionNumber: number) => {
+    if (!diagram.currentDiagramObj?.id) return;
+
+    try {
+      const versions = await import('./services/projectsApi').then(m => m.listDiagramVersions(diagram.currentDiagramObj!.id));
+      const targetVersion = versions.find(v => v.version === versionNumber);
+
+      if (targetVersion) {
+        diagram.selectVersion(targetVersion);
+      } else {
+        console.warn(`Version ${versionNumber} not found`);
+      }
+    } catch (error) {
+      console.error('Failed to select version:', error);
+    }
   };
 
   // Detect platform for keyboard shortcut display
@@ -332,6 +367,8 @@ function App() {
               currentVersion={diagram.currentVersion}
               onSelectVersion={diagram.selectVersion}
               refreshTrigger={diagram.versionRefreshTrigger}
+              isOpen={versionHistoryOpen}
+              onToggle={setVersionHistoryOpen}
             />
           )}
         </div>
@@ -446,6 +483,10 @@ function App() {
           setHelpModalOpen(false);
         }}
         currentDiagram={diagram.currentDiagram}
+        currentVersion={diagram.currentVersion}
+        totalVersions={totalVersions}
+        onSelectVersion={handleSelectVersionByNumber}
+        onShowVersionHistory={() => setVersionHistoryOpen(true)}
       />
     </div>
   );

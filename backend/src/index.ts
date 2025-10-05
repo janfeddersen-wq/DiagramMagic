@@ -310,6 +310,57 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
     }
   }
 
+  // Handle GetCurrentDiagramVersion - request version info from UI
+  if (toolName === 'GetCurrentDiagramVersion') {
+    try {
+      logger.info('GetCurrentDiagramVersion - Requesting version info from UI...');
+
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          logger.warn('GetCurrentDiagramVersion - Timeout waiting for UI response');
+          res.json({
+            success: false,
+            message: 'No version information available'
+          });
+          resolve();
+        }, 2000);
+
+        socket.once('voice-agent:current-version-response', (data: { currentVersion: number | null; totalVersions: number }) => {
+          clearTimeout(timeout);
+          logger.debug('GetCurrentDiagramVersion - UI responded:', data);
+
+          if (!data.currentVersion) {
+            res.json({
+              success: false,
+              message: 'No diagram version available'
+            });
+            return resolve();
+          }
+
+          res.json({
+            success: true,
+            currentVersion: data.currentVersion,
+            totalVersions: data.totalVersions,
+            message: `Currently on version ${data.currentVersion} of ${data.totalVersions}`
+          });
+          return resolve();
+        });
+
+        socket.emit('voice-agent:request-current-version');
+      });
+    } catch (error) {
+      logger.error('Error getting current version:', error);
+      return res.status(500).json({ error: 'Failed to get current version' });
+    }
+  }
+
+  // Handle SelectDiagramVersion - request version selection from UI
+  if (toolName === 'SelectDiagramVersion') {
+    const { versionNumber } = params || {};
+    socket.emit('voice-agent:SelectDiagramVersion', { versionNumber });
+    return res.json({ success: true, message: `Switching to version ${versionNumber}` });
+  }
+
   // Handle GetCurrentDiagram - request current diagram from UI
   if (toolName === 'GetCurrentDiagram') {
     try {

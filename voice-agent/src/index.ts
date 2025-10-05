@@ -409,6 +409,95 @@ function createGetCurrentDiagramTool(apiKey: string) {
   });
 }
 
+function createGetCurrentDiagramVersionTool(apiKey: string) {
+  return llm.tool({
+    description: 'Get information about the current diagram version (version number and total versions available)',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      logger.info('🔧 [TOOL] GetCurrentDiagramVersion called');
+      try {
+        const result = await callBackendTool(apiKey, 'GetCurrentDiagramVersion', {});
+        if (result.success && result.currentVersion) {
+          return JSON.stringify({
+            success: true,
+            currentVersion: result.currentVersion,
+            totalVersions: result.totalVersions,
+            message: `Currently on version ${result.currentVersion} of ${result.totalVersions}`
+          });
+        } else {
+          return JSON.stringify({
+            success: false,
+            message: result.message || 'No diagram version information available'
+          });
+        }
+      } catch (error) {
+        logger.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createSelectDiagramVersionTool(apiKey: string) {
+  return llm.tool({
+    description: 'Select a specific diagram version by version number',
+    parameters: {
+      type: 'object',
+      properties: {
+        versionNumber: {
+          type: 'number',
+          description: 'The version number to switch to',
+        },
+      },
+      required: ['versionNumber'],
+    },
+    execute: async (args: any) => {
+      logger.info('🔧 [TOOL] SelectDiagramVersion called with:', args);
+      const { versionNumber } = args;
+      try {
+        const result = await callBackendTool(apiKey, 'SelectDiagramVersion', { versionNumber });
+        if (result.success) {
+          return JSON.stringify({
+            success: true,
+            message: `Switched to version ${versionNumber}`
+          });
+        } else {
+          return JSON.stringify({
+            success: false,
+            message: result.message || `Version ${versionNumber} not found`
+          });
+        }
+      } catch (error) {
+        logger.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createShowVersionHistoryTool(apiKey: string) {
+  return llm.tool({
+    description: 'Open/show the version history panel',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      logger.info('🔧 [TOOL] ShowVersionHistory called');
+      try {
+        const result = await callBackendTool(apiKey, 'ShowVersionHistory', {});
+        return JSON.stringify({ success: true, message: 'Version history opened' });
+      } catch (error) {
+        logger.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
 // Define the agent
 export default defineAgent({
   entry: async (ctx) => {
@@ -528,6 +617,9 @@ export default defineAgent({
     - CreateDiagram: ONLY when explicitly asked to "create a diagram" or "add a diagram" (requires diagram name)
     - TalkToDiagram: Use this for EVERYTHING ELSE - any request about creating, modifying, or generating diagrams
     - GetCurrentDiagram: Retrieve the current visible Mermaid diagram code to discuss or analyze it
+    - GetCurrentDiagramVersion: Get current version number and total versions available
+    - SelectDiagramVersion: Switch to a specific version by version number
+    - ShowVersionHistory: Open the version history panel
     - SaveDiagramAsMarkdown: Save current diagram as a Markdown (.md) file
     - SaveDiagramAsImage: Save current diagram as a PNG image file
     - OpenHelp: Open the help/quick start guide modal
@@ -546,6 +638,11 @@ export default defineAgent({
     - "What's in the current diagram?" → GetCurrentDiagram (then discuss the code)
     - "Explain this diagram to me" → GetCurrentDiagram (then explain the retrieved code)
     - "Can you improve the diagram?" → GetCurrentDiagram (get it first, then suggest improvements via TalkToDiagram)
+    - "Go back one version" → GetCurrentDiagramVersion, then SelectDiagramVersion(currentVersion - 1)
+    - "Go to next version" → GetCurrentDiagramVersion, then SelectDiagramVersion(currentVersion + 1)
+    - "Show version history" → ShowVersionHistory
+    - "What version am I on?" → GetCurrentDiagramVersion
+    - "Go to version 3" → SelectDiagramVersion(3)
     - "Save diagram as markdown" → SaveDiagramAsMarkdown
     - "Download as image" → SaveDiagramAsImage
     - "Export as PNG" → SaveDiagramAsImage
@@ -591,6 +688,9 @@ export default defineAgent({
         SelectDiagram: createSelectDiagramTool(apiKey),
         TalkToDiagram: createTalkToDiagramTool(apiKey),
         GetCurrentDiagram: createGetCurrentDiagramTool(apiKey),
+        GetCurrentDiagramVersion: createGetCurrentDiagramVersionTool(apiKey),
+        SelectDiagramVersion: createSelectDiagramVersionTool(apiKey),
+        ShowVersionHistory: createShowVersionHistoryTool(apiKey),
         SaveDiagramAsMarkdown: createSaveDiagramAsMarkdownTool(apiKey),
         SaveDiagramAsImage: createSaveDiagramAsImageTool(apiKey),
         OpenHelp: createOpenHelpTool(apiKey),

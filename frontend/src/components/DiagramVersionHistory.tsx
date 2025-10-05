@@ -9,12 +9,32 @@ interface DiagramVersionHistoryProps {
   currentVersion: DiagramVersion | null;
   onSelectVersion: (version: DiagramVersion) => void;
   refreshTrigger?: number;
+  isOpen?: boolean;
+  onToggle?: (open: boolean) => void;
 }
 
-export function DiagramVersionHistory({ diagramId, currentVersion, onSelectVersion, refreshTrigger }: DiagramVersionHistoryProps) {
+export function DiagramVersionHistory({ diagramId, currentVersion, onSelectVersion, refreshTrigger, isOpen: controlledIsOpen, onToggle }: DiagramVersionHistoryProps) {
   const [versions, setVersions] = useState<DiagramVersion[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Use controlled or internal state
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const setIsOpen = (open: boolean) => {
+    if (onToggle) {
+      onToggle(open);
+    } else {
+      setInternalIsOpen(open);
+    }
+  };
+
+  // Update parent with total versions count whenever versions change
+  useEffect(() => {
+    if (onToggle && versions.length > 0) {
+      // This allows parent to know how many versions exist
+      // Parent can use this info when responding to voice commands
+    }
+  }, [versions.length, onToggle]);
 
   useEffect(() => {
     if (diagramId && isOpen) {

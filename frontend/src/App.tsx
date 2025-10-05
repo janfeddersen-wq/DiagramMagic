@@ -7,7 +7,7 @@ import { ProjectSelector } from './components/ProjectSelector';
 import { DiagramsSidebar } from './components/DiagramsSidebar';
 import { DiagramVersionHistory } from './components/DiagramVersionHistory';
 import { ScratchModeWarning } from './components/ScratchModeWarning';
-import { AuthModal } from './components/AuthModal';
+import { LoginModal, SignupModal } from './components/AuthModal';
 import { WelcomePage } from './components/WelcomePage';
 import { PromptModal, AlertModal } from './components/Modal';
 import { VoiceAgentButton } from './components/VoiceAgentButton';
@@ -135,8 +135,17 @@ function App() {
   if (!isAuthenticated && !authLoading) {
     return (
       <>
-        <WelcomePage onShowAuth={modals.openAuthModal} />
-        <AuthModal isOpen={modals.showAuthModal} onClose={modals.closeAuthModal} initialMode={modals.authModalMode} />
+        <WelcomePage onShowLogin={modals.openLoginModal} onShowSignup={modals.openSignupModal} />
+        <LoginModal
+          isOpen={modals.showLoginModal}
+          onClose={modals.closeLoginModal}
+          onSwitchToSignup={modals.openSignupModal}
+        />
+        <SignupModal
+          isOpen={modals.showSignupModal}
+          onClose={modals.closeSignupModal}
+          onSwitchToLogin={modals.openLoginModal}
+        />
       </>
     );
   }
@@ -279,8 +288,17 @@ function App() {
         </div>
       </div>
 
-      {/* Auth Modal */}
-      <AuthModal isOpen={modals.showAuthModal} onClose={modals.closeAuthModal} initialMode={modals.authModalMode} />
+      {/* Auth Modals */}
+      <LoginModal
+        isOpen={modals.showLoginModal}
+        onClose={modals.closeLoginModal}
+        onSwitchToSignup={modals.openSignupModal}
+      />
+      <SignupModal
+        isOpen={modals.showSignupModal}
+        onClose={modals.closeSignupModal}
+        onSwitchToLogin={modals.openLoginModal}
+      />
 
       {/* Prompt Modal */}
       <PromptModal

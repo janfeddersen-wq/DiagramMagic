@@ -1,8 +1,9 @@
 interface WelcomePageProps {
-  onShowAuth: (mode: 'login' | 'signup') => void;
+  onShowLogin: () => void;
+  onShowSignup: () => void;
 }
 
-export function WelcomePage({ onShowAuth }: WelcomePageProps) {
+export function WelcomePage({ onShowLogin, onShowSignup }: WelcomePageProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -108,13 +109,13 @@ export function WelcomePage({ onShowAuth }: WelcomePageProps) {
 
             <div className="space-y-3">
               <button
-                onClick={() => onShowAuth('login')}
+                onClick={onShowLogin}
                 className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors shadow-md"
               >
                 Sign In
               </button>
               <button
-                onClick={() => onShowAuth('signup')}
+                onClick={onShowSignup}
                 className="w-full py-3 px-6 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-lg transition-colors border-2 border-gray-300"
               >
                 Create Account

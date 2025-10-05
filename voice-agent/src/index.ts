@@ -374,6 +374,8 @@ export default defineAgent({
 
     const stt = new STT({
       apiKey: process.env.DEEPGRAM_API_KEY,
+      model: 'nova-2',
+      language: 'en',
     });
 
     // Add STT event listeners for debugging
@@ -384,6 +386,50 @@ export default defineAgent({
     stt.on('error', (error: any) => {
       console.error('❌ STT error:', error);
     });
+
+    // Wrap STT to log all interactions
+    const originalRecognize = stt.recognize.bind(stt);
+    stt.recognize = async function(...args: any[]) {
+      console.log('🎤 STT recognize() called with args:', args.length);
+      try {
+        const result = await originalRecognize(...args);
+        console.log('🎤 STT recognize() completed');
+        return result;
+      } catch (error) {
+        console.error('❌ STT recognize() failed:', error);
+        throw error;
+      }
+    };
+
+    const originalStream = stt.stream.bind(stt);
+    stt.stream = function(...args: any[]) {
+      console.log('🎤 STT stream() called');
+      const stream = originalStream(...args);
+
+      // Log stream events
+      stream.on('data', (data: any) => {
+        console.log('📥 STT stream data received');
+        if (data?.alternatives) {
+          console.log('📥 Transcription:', data.alternatives[0]?.transcript);
+          console.log('📥 Confidence:', data.alternatives[0]?.confidence);
+        }
+        console.log('📥 Full data:', JSON.stringify(data));
+      });
+
+      stream.on('error', (error: any) => {
+        console.error('❌ STT stream error:', error);
+      });
+
+      stream.on('end', () => {
+        console.log('🏁 STT stream ended');
+      });
+
+      stream.on('close', () => {
+        console.log('🔒 STT stream closed');
+      });
+
+      return stream;
+    };
 
     console.log('🎤 STT initialized with Deepgram');
     console.log('🎤 Deepgram API key:', process.env.DEEPGRAM_API_KEY ? 'present' : 'missing');
@@ -493,7 +539,9 @@ export default defineAgent({
     });
 
     session.on('user_speech_committed', (msg: any) => {
-      console.log('💬 User speech committed:', JSON.stringify(msg));
+      console.log('💬 User speech committed - text length:', msg?.text?.length || 0);
+      console.log('💬 User speech text:', msg?.text || '(empty)');
+      console.log('💬 Full message:', JSON.stringify(msg));
     });
 
     // Add more detailed debugging events
@@ -513,6 +561,22 @@ export default defineAgent({
     llmInstance.on('error', (error: any) => {
       console.error('❌ LLM error:', error);
     });
+
+    // Intercept LLM chat calls to see what's being sent
+    const originalChat = llmInstance.chat.bind(llmInstance);
+    llmInstance.chat = async function(...args: any[]) {
+      console.log('🤖 LLM chat() called');
+      console.log('🤖 Chat history length:', args[0]?.chatHistory?.length || 0);
+      console.log('🤖 Latest message:', JSON.stringify(args[0]?.chatHistory?.[args[0]?.chatHistory?.length - 1]));
+      try {
+        const result = await originalChat(...args);
+        console.log('🤖 LLM chat() completed');
+        return result;
+      } catch (error) {
+        console.error('❌ LLM chat() failed:', error);
+        throw error;
+      }
+    };
 
     await session.start({
       agent,

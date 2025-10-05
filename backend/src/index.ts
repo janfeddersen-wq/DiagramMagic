@@ -314,10 +314,11 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
   if (toolName === 'GetCurrentDiagramVersion') {
     try {
       logger.info('GetCurrentDiagramVersion - Requesting version info from UI...');
+      logger.info('GetCurrentDiagramVersion - Socket ID: ' + session.socketId);
 
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
-          logger.warn('GetCurrentDiagramVersion - Timeout waiting for UI response');
+          logger.warn('GetCurrentDiagramVersion - Timeout waiting for UI response after 2s');
           res.json({
             success: false,
             message: 'No version information available'
@@ -327,9 +328,10 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
 
         socket.once('voice-agent:current-version-response', (data: { currentVersion: number | null; totalVersions: number }) => {
           clearTimeout(timeout);
-          logger.debug('GetCurrentDiagramVersion - UI responded:', data);
+          logger.info('GetCurrentDiagramVersion - UI responded with data:', JSON.stringify(data));
 
           if (!data.currentVersion) {
+            logger.info('GetCurrentDiagramVersion - No version in response, sending failure');
             res.json({
               success: false,
               message: 'No diagram version available'
@@ -337,6 +339,7 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
             return resolve();
           }
 
+          logger.info('GetCurrentDiagramVersion - Sending success response');
           res.json({
             success: true,
             currentVersion: data.currentVersion,
@@ -346,7 +349,9 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
           return resolve();
         });
 
+        logger.info('GetCurrentDiagramVersion - Emitting request-current-version to socket ' + session.socketId);
         socket.emit('voice-agent:request-current-version');
+        logger.info('GetCurrentDiagramVersion - Request emitted, waiting for response...');
       });
     } catch (error) {
       logger.error('Error getting current version:', error);

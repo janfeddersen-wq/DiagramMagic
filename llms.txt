@@ -1,0 +1,599 @@
+# Mermaid Diagram Syntax
+
+> Comprehensive reference for all Mermaid.js diagram types and their syntax
+
+Mermaid is a JavaScript-based diagramming and charting tool that uses Markdown-inspired text definitions to create and modify diagrams dynamically. This document provides syntax reference for all 23 diagram types supported by Mermaid.
+
+## Diagram Types
+
+### Flowchart
+
+Flowcharts visualize processes, decisions, and relationships using nodes (geometric shapes) and edges (arrows or lines).
+
+**Basic Syntax:**
+```mermaid
+flowchart TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Process]
+    B -->|No| D[End]
+```
+
+**Key Elements:**
+- Directions: `TD` (top-down), `LR` (left-right), `BT` (bottom-top), `RL` (right-left)
+- Node shapes: `[]` rectangle, `()` rounded, `([])` stadium, `(())` circle, `{}` rhombus, `{{}}` hexagon
+- Link types: `-->` solid arrow, `-.->` dotted, `==>` thick, `---` solid line
+- Supports `subgraph` for grouping nodes
+- 30+ node shapes available (v11.3.0+)
+
+---
+
+### Sequence Diagram
+
+Interaction diagrams showing how processes operate with one another and in what order.
+
+**Basic Syntax:**
+```mermaid
+sequenceDiagram
+    participant A
+    participant B
+    A->>B: Hello
+    B-->>A: Hi back
+    activate B
+    B->>C: Forward
+    deactivate B
+```
+
+**Key Elements:**
+- Participants: `participant`, `actor`
+- Message types: `->` solid, `-->` dotted, `->>` solid with arrow, `-->>` dotted with arrow
+- Control flow: `activate`/`deactivate`, `loop`, `alt`, `par`, `opt`, `break`
+- Participant types: boundary, control, entity, database, collections, queue
+- Supports notes, backgrounds, and numbering
+
+---
+
+### Class Diagram
+
+Describes system structure showing classes, attributes, operations, and relationships.
+
+**Basic Syntax:**
+```mermaid
+classDiagram
+    class Animal {
+        +String name
+        +int age
+        +makeSound()
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat
+```
+
+**Key Elements:**
+- Visibility: `+` public, `-` private, `#` protected, `~` package
+- Relationships: `<|--` inheritance, `*--` composition, `o--` aggregation, `-->` association, `..>` dependency
+- Annotations: `<<Interface>>`, `<<Abstract>>`, `<<Service>>`, `<<Enumeration>>`
+- Supports generic types and multiplicity
+
+---
+
+### State Diagram
+
+Describes system behavior through state transitions.
+
+**Basic Syntax:**
+```mermaid
+stateDiagram-v2
+    [*] --> Still
+    Still --> Moving
+    Moving --> Crash
+    Moving --> Still
+    Crash --> [*]
+```
+
+**Key Elements:**
+- Keyword: `stateDiagram-v2`
+- `[*]` for start/end states
+- `-->` for transitions
+- Composite states using indentation or `{}`
+- Special states: `<<choice>>`, `<<fork>>`, `<<join>>`
+- Supports notes and concurrency
+
+---
+
+### Entity Relationship Diagram
+
+Shows entities and their relationships in a specific domain.
+
+**Basic Syntax:**
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
+```
+
+**Key Elements:**
+- Cardinality: `||` exactly one, `|o` zero or one, `}o` zero or more, `}|` one or more
+- Relationship lines: `--` identifying, `..` non-identifying
+- Entities use singular nouns (convention)
+- Supports attributes within entities with data types
+
+---
+
+### User Journey
+
+Describes steps different users take to complete tasks within a system.
+
+**Basic Syntax:**
+```mermaid
+journey
+    title My working day
+    section Go to work
+        Make tea: 5: Me
+        Go upstairs: 3: Me
+    section Go home
+        Go downstairs: 5: Me
+        Drink beer: 5: Me
+```
+
+**Key Elements:**
+- Keyword: `journey`
+- `title` for diagram title
+- `section` to divide journey parts
+- Task syntax: `Task name: score: actor1, actor2`
+- Score range: 1-5 (represents satisfaction/difficulty)
+
+---
+
+### Gantt Chart
+
+Bar chart illustrating project schedules and timelines.
+
+**Basic Syntax:**
+```mermaid
+gantt
+    title Project Schedule
+    dateFormat YYYY-MM-DD
+    section Design
+        Research: a1, 2024-01-01, 30d
+        Mockups: after a1, 20d
+    section Development
+        Coding: 2024-02-15, 45d
+```
+
+**Key Elements:**
+- Keyword: `gantt`
+- `dateFormat` for date parsing
+- Task states: `active`, `done`, `crit`, `milestone`
+- Task syntax: `name: id, start, duration` or `name: after id, duration`
+- Supports sections, exclusions (weekends/holidays)
+
+---
+
+### Pie Chart
+
+Circular statistical graphic showing numerical proportions.
+
+**Basic Syntax:**
+```mermaid
+pie showData
+    title Key elements in Product X
+    "Calcium": 42.96
+    "Potassium": 50.05
+    "Magnesium": 10.01
+    "Iron": 5
+```
+
+**Key Elements:**
+- Keyword: `pie`
+- `showData` to display values
+- `title` optional
+- Label-value pairs with quotes
+- Values must be positive numbers
+
+---
+
+### Quadrant Chart
+
+Visual representation of data in four quadrants on a 2D grid.
+
+**Basic Syntax:**
+```mermaid
+quadrantChart
+    title Reach and engagement of campaigns
+    x-axis Low Reach --> High Reach
+    y-axis Low Engagement --> High Engagement
+    quadrant-1 We should expand
+    quadrant-2 Need to promote
+    quadrant-3 Re-evaluate
+    quadrant-4 May be improved
+    Campaign A: [0.3, 0.6]
+    Campaign B: [0.45, 0.23]
+```
+
+**Key Elements:**
+- Keyword: `quadrantChart`
+- `x-axis` and `y-axis` with labels
+- `quadrant-1` through `quadrant-4` for labels
+- Point syntax: `Point Name: [x, y]` (values 0-1)
+- Optional theme customization
+
+---
+
+### Requirement Diagram
+
+Visualizes requirements and connections per SysML v1.6.
+
+**Basic Syntax:**
+```mermaid
+requirementDiagram
+    requirement test_req {
+        id: 1
+        text: the test text
+        risk: high
+        verifymethod: test
+    }
+    element test_entity {
+        type: simulation
+    }
+    test_entity - satisfies -> test_req
+```
+
+**Key Elements:**
+- Types: `requirement`, `functionalRequirement`, `performanceRequirement`, `interfaceRequirement`, `physicalRequirement`, `designConstraint`
+- Attributes: `id`, `text`, `risk` (Low/Medium/High), `verifymethod` (Analysis/Inspection/Test/Demonstration)
+- Relationships: `contains`, `copies`, `derives`, `satisfies`, `verifies`, `refines`, `traces`
+- Element types: simulation, test case, etc.
+
+---
+
+### GitGraph
+
+Pictorial representation of git commits and actions on branches.
+
+**Basic Syntax:**
+```mermaid
+gitGraph
+    commit
+    branch develop
+    checkout develop
+    commit
+    commit
+    checkout main
+    merge develop
+    commit
+```
+
+**Key Elements:**
+- Keyword: `gitGraph`
+- Commands: `commit`, `branch`, `checkout`, `merge`, `cherry-pick`
+- Commit types: `NORMAL`, `REVERSE`, `HIGHLIGHT`
+- Optional attributes: `id`, `tag`, `type`
+- Branch ordering and theming support
+
+---
+
+### C4 Diagram
+
+Software architecture visualization at different abstraction levels (experimental).
+
+**Basic Syntax:**
+```mermaid
+C4Context
+    title System Context diagram for Internet Banking System
+    Person(customerA, "Banking Customer", "A customer of the bank")
+    System(SystemAA, "Internet Banking System", "Allows customers to view information")
+    Rel(customerA, SystemAA, "Uses")
+```
+
+**Key Elements:**
+- Types: `C4Context`, `C4Container`, `C4Component`, `C4Dynamic`, `C4Deployment`
+- Elements: `Person`, `System`, `SystemDb`, `Container`, `Component`, `Deployment_Node`
+- `Rel` for relationships with labels
+- Boundary definitions for grouping
+- Note: Experimental feature
+
+---
+
+### Mindmap
+
+Visual organization of information into a hierarchy (experimental).
+
+**Basic Syntax:**
+```mermaid
+mindmap
+  root((mindmap))
+    Origins
+      Long history
+      ::icon(fa fa-book)
+      Popularisation
+        British popular psychology author Tony Buzan
+    Research
+      On effectiveness<br/>and features
+      On Automatic creation
+        Uses
+            Creative techniques
+            Strategic planning
+            Argument mapping
+```
+
+**Key Elements:**
+- Keyword: `mindmap`
+- Indentation defines hierarchy
+- Node shapes: default, square `[text]`, rounded `(text)`, circle `((text))`, bang `))text((`, cloud `)text(`
+- Icons: `::icon(fa fa-book)`
+- Markdown formatting supported (bold, italic, code)
+
+---
+
+### Timeline
+
+Illustrates chronology of events, dates, or periods (experimental).
+
+**Basic Syntax:**
+```mermaid
+timeline
+    title History of Social Media Platform
+    2002 : LinkedIn
+    2004 : Facebook
+         : Google
+    2005 : Youtube
+    2006 : Twitter
+```
+
+**Key Elements:**
+- Keyword: `timeline`
+- `title` optional
+- Format: `time period : event : event`
+- `section` to group time periods
+- Events displayed chronologically left to right
+- Multiple events per time period supported
+
+---
+
+### ZenUML
+
+Alternative sequence diagram syntax with programmatic approach.
+
+**Basic Syntax:**
+```zenuml
+zenuml
+    title Demo
+    Alice->John: Hello John, how are you?
+    John->Alice: Great!
+    Alice->Bob: Bob, how about you?
+```
+
+**Key Elements:**
+- Keyword: `zenuml`
+- Message syntax: `A->B: message` or `A.method(B)`
+- Message types: sync, async, creation, reply
+- Nesting with `{}`
+- Control structures: `while`, `if/else`, `opt`, `par`, `alt`
+- Comments with `//`
+
+---
+
+### Sankey Diagram
+
+Depicts flow from one set of values to another (experimental, v10.3.0+).
+
+**Basic Syntax:**
+```mermaid
+sankey-beta
+
+Agricultural 'waste',Bio-conversion,124.729
+Bio-conversion,Liquid,0.597
+Bio-conversion,Losses,26.862
+Bio-conversion,Solid,280.322
+Bio-conversion,Gas,81.144
+```
+
+**Key Elements:**
+- Keyword: `sankey-beta`
+- CSV format: source,target,value
+- Three columns required
+- Configuration options: `linkColor`, `nodeAlignment`, `width`, `height`
+- Experimental feature
+
+---
+
+### XY Chart
+
+Comprehensive charting using x-axis and y-axis for data representation.
+
+**Basic Syntax:**
+```mermaid
+xychart-beta
+    title "Sales Revenue"
+    x-axis [jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec]
+    y-axis "Revenue (in $)" 4000 --> 11000
+    bar [5000, 6000, 7500, 8200, 9500, 10500, 11000, 10200, 9200, 8500, 7000, 6000]
+    line [5000, 6000, 7500, 8200, 9500, 10500, 11000, 10200, 9200, 8500, 7000, 6000]
+```
+
+**Key Elements:**
+- Keyword: `xychart-beta`
+- `x-axis` definition (categorical or numeric)
+- `y-axis` with label and range
+- Plot types: `line []`, `bar []`
+- Supports multiple datasets
+- Horizontal orientation available
+
+---
+
+### Block Diagram
+
+Represents systems, processes, or architectures using blocks and connectors.
+
+**Basic Syntax:**
+```mermaid
+block-beta
+columns 3
+  db(("DB"))
+  blockArrowId6<["&nbsp;&nbsp;&nbsp;"]>(down)
+  block:ID
+    A
+    B["A wide one in the middle"]
+    C
+  end
+  space
+  D
+  ID --> D
+  C --> D
+  style B fill:#969,stroke:#333,stroke-width:4px
+```
+
+**Key Elements:**
+- Keyword: `block-beta`
+- `columns` to set layout grid
+- Block shapes: rectangular (default), round-edged, stadium, subroutine, cylindrical, circle
+- Composite/nested blocks with `block:ID ... end`
+- Column spanning: `:n`
+- Arrow blocks and space blocks
+
+---
+
+### Packet Diagram
+
+Visual representation of network packet structure.
+
+**Basic Syntax:**
+```mermaid
+packet-beta
+0-15: "Source Port"
+16-31: "Destination Port"
+32-63: "Sequence Number"
+64-95: "Acknowledgment Number"
+96-99: "Data Offset"
+100-105: "Reserved"
+106: "URG"
+107: "ACK"
+108: "PSH"
+109: "RST"
+110: "SYN"
+111: "FIN"
+112-127: "Window"
+128-143: "Checksum"
+144-159: "Urgent Pointer"
+```
+
+**Key Elements:**
+- Keyword: `packet-beta`
+- Bit range syntax: `start-end: "Field name"`
+- Newer syntax (v11.7.0+): `+count: "Field name"`
+- Automatically arranges in rows of 32 bits
+- Supports custom bit widths
+
+---
+
+### Kanban
+
+Visual representation of tasks through workflow stages.
+
+**Basic Syntax:**
+```mermaid
+kanban
+  Todo
+    [Create Documentation]
+    docs[Create Blog about the new diagram]
+  [In progress]
+    id6[Create renderer so that it works in all cases. We also add som extra text here for testing purposes. And some more just for the extra flare.]
+  id9[Ready for deploy]
+    id8[Design grammar]@{ assigned: 'knsv' }
+  id10[Ready for test]
+    id4[Create parsing tests]@{ ticket: MC-2038, assigned: 'K.Sveidqvist', priority: 'High' }
+  id11[Done]
+    id5[define getData]
+    id2[Title of diagram is more than 100 chars when user duplicates diagram with 100 char]@{ ticket: MC-2036, priority: 'Very High'}
+    id3[Update DB function]@{ ticket: MC-2037, assigned: knsv, priority: 'High' }
+```
+
+**Key Elements:**
+- Keyword: `kanban`
+- Column definitions (any name)
+- Task syntax: `[Task name]` or `id[Task name]`
+- Metadata: `@{assigned: "Name", ticket: "ID", priority: "Level"}`
+- Configuration: `ticketBaseUrl` for linking
+
+---
+
+### Architecture Diagram
+
+Shows relationships between services and cloud/CI-CD resources.
+
+**Basic Syntax:**
+```mermaid
+architecture-beta
+    group api(cloud)[API]
+
+    service db(database)[Database] in api
+    service disk1(disk)[Storage] in api
+    service disk2(disk)[Storage] in api
+    service server(server)[Server] in api
+
+    db:L -- R:server
+    disk1:T -- B:server
+    disk2:T -- B:db
+```
+
+**Key Elements:**
+- Keyword: `architecture-beta`
+- `group {id}({icon})[{title}]` for grouping
+- `service {id}({icon})[{title}]` for services
+- Icons: cloud, database, disk, internet, server
+- Edge syntax with directional markers: `L`, `R`, `T`, `B`
+- Supports junctions for complex connections
+
+---
+
+### Radar Chart
+
+Circular data visualization for comparing performance across dimensions (spider/star chart).
+
+**Basic Syntax:**
+```mermaid
+radar-beta
+    title Skills Assessment
+    axis Communication, Teamwork, Technical, Leadership, Problem Solving
+    curve Employee1{4, 5, 3, 4, 5}
+    curve Employee2{3, 4, 5, 3, 4}
+```
+
+**Key Elements:**
+- Keyword: `radar-beta`
+- `axis` to define dimensions (3-10 recommended)
+- `curve` to plot data with name and values
+- Options: `showLegend`, `max`/`min`, `graticule`, `ticks`
+- Multiple curves supported for comparison
+
+---
+
+### Treemap
+
+Displays hierarchical data as nested rectangles.
+
+**Basic Syntax:**
+```mermaid
+treemap-beta
+    title Ecosystem Threats
+    Animals
+        Increased hunting
+            Vehicles: 10
+            Traps: 3
+        Habitat loss
+            Farming: 15
+            Construction: 12
+    Disease
+        Infections: 8
+        Pollution: 6
+```
+
+**Key Elements:**
+- Keyword: `treemap-beta`
+- Hierarchy through indentation
+- Parent/section nodes with text
+- Leaf nodes: `"name": value`
+- Styling with `:::className`
+- Rectangular tiling algorithm
+

@@ -2,11 +2,14 @@ import OpenAI from 'openai';
 import { ChatMessage, DiagramResponse, RenderValidationRequest, RenderValidationResponse } from '../types/index.js';
 import { Server } from 'socket.io';
 import { randomUUID } from 'crypto';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 export class ReactAgent {
   private client: OpenAI;
   private model: string;
   private io?: Server;
+  private mermaidSyntaxGuide: string;
   private renderValidationPromises: Map<string, {
     resolve: (value: RenderValidationResponse) => void;
     reject: (reason?: any) => void;
@@ -20,6 +23,15 @@ export class ReactAgent {
     });
     this.model = model;
     this.io = io;
+
+    // Load Mermaid syntax guide from llms.txt
+    try {
+      const llmsPath = join(process.cwd(), 'llms.txt');
+      this.mermaidSyntaxGuide = readFileSync(llmsPath, 'utf-8');
+    } catch (error) {
+      console.warn('Warning: Could not load llms.txt, using basic syntax guide');
+      this.mermaidSyntaxGuide = 'Use proper Mermaid.js syntax for diagrams.';
+    }
   }
 
   public setupSocketListeners(socket: any) {
@@ -174,20 +186,10 @@ When responding, you MUST return a JSON object with this exact structure:
   "mermaidDiagram": "The corrected Mermaid diagram code"
 }
 
-Rules for Mermaid diagrams:
-- Always include the diagram type (graph, flowchart, sequenceDiagram, etc.)
-- Use proper Mermaid syntax
-- Make diagrams clear and well-structured, with logical color scheme
-- For flowcharts, use "flowchart TD" or "graph TD" syntax
-- For bar charts, use "xychart-beta" with this format:
-  xychart-beta
-      title "Chart Title"
-      x-axis [category1, category2, category3]
-      y-axis "Y Label" minValue --> maxValue
-      bar [value1, value2, value3]
-      line [value1, value2, value3]
-- Ensure all nodes and connections are properly defined
-- IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
+IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
+
+# Mermaid Syntax Reference
+${this.mermaidSyntaxGuide}
 
 Recent conversation context:
 ${chatHistory.slice(-5).map(m => `${m.role}: ${m.content}`).join('\n')}`
@@ -241,20 +243,10 @@ When responding, you MUST return a JSON object with this exact structure:
   "mermaidDiagram": "The complete Mermaid diagram code"
 }
 
-Rules for Mermaid diagrams:
-- Always include the diagram type (graph, flowchart, sequenceDiagram, etc.)
-- Use proper Mermaid syntax
-- Make diagrams clear and well-structured
-- For flowcharts, use "flowchart TD" or "graph TD" syntax
-- For bar charts, use "xychart-beta" with this format:
-  xychart-beta
-      title "Chart Title"
-      x-axis [category1, category2, category3]
-      y-axis "Y Label" minValue --> maxValue
-      bar [value1, value2, value3]
-      line [value1, value2, value3]
-- Ensure all nodes and connections are properly defined
-- IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
+IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
+
+# Mermaid Syntax Reference
+${this.mermaidSyntaxGuide}
 
 ${currentDiagram ? `Current diagram:\n${currentDiagram}` : 'No current diagram exists.'}
 

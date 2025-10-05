@@ -29,6 +29,7 @@ function App() {
   const currentValidationRequestRef = useRef<string | null>(null);
   const mermaidDiagramRef = useRef<MermaidDiagramRef>(null);
   const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
   const [projectsRefreshTrigger, setProjectsRefreshTrigger] = useState(0);
   const [diagramsRefreshTrigger, setDiagramsRefreshTrigger] = useState(0);
 
@@ -229,7 +230,11 @@ function App() {
       </header>
 
       {/* Help Section */}
-      <HelpSection onPromptClick={chat.sendMessage} />
+      <HelpSection
+        onPromptClick={chat.sendMessage}
+        isOpen={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+      />
 
       {/* Scratch Mode Warning */}
       {project.isScratchMode && <ScratchModeWarning />}
@@ -387,6 +392,12 @@ function App() {
         }}
         onSaveDiagramAsImage={() => {
           mermaidDiagramRef.current?.saveAsImage();
+        }}
+        onOpenHelp={() => {
+          setHelpModalOpen(true);
+        }}
+        onCloseHelp={() => {
+          setHelpModalOpen(false);
         }}
       />
     </div>

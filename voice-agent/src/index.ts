@@ -338,6 +338,46 @@ function createSaveDiagramAsImageTool(apiKey: string) {
   });
 }
 
+function createOpenHelpTool(apiKey: string) {
+  return llm.tool({
+    description: 'Open the help/quick start guide modal',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      logger.info('🔧 [TOOL] OpenHelp called');
+      try {
+        const result = await callBackendTool(apiKey, 'OpenHelp', {});
+        return JSON.stringify({ success: true, message: 'Help guide opened' });
+      } catch (error) {
+        logger.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createCloseHelpTool(apiKey: string) {
+  return llm.tool({
+    description: 'Close the help/quick start guide modal',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      logger.info('🔧 [TOOL] CloseHelp called');
+      try {
+        const result = await callBackendTool(apiKey, 'CloseHelp', {});
+        return JSON.stringify({ success: true, message: 'Help guide closed' });
+      } catch (error) {
+        logger.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
 // Define the agent
 export default defineAgent({
   entry: async (ctx) => {
@@ -458,6 +498,8 @@ export default defineAgent({
     - TalkToDiagram: Use this for EVERYTHING ELSE - any request about creating, modifying, or generating diagrams
     - SaveDiagramAsMarkdown: Save current diagram as a Markdown (.md) file
     - SaveDiagramAsImage: Save current diagram as a PNG image file
+    - OpenHelp: Open the help/quick start guide modal
+    - CloseHelp: Close the help/quick start guide modal
     - StopVoiceChat: ONLY when user says "stop", "goodbye", "close voice chat", or "end conversation"
 
     DEFAULT BEHAVIOR:
@@ -472,6 +514,9 @@ export default defineAgent({
     - "Save diagram as markdown" → SaveDiagramAsMarkdown
     - "Download as image" → SaveDiagramAsImage
     - "Export as PNG" → SaveDiagramAsImage
+    - "Show help" → OpenHelp
+    - "Open guide" → OpenHelp
+    - "Close help" → CloseHelp
 
     MULTI-STEP WORKFLOWS (you can call multiple tools in sequence):
 
@@ -512,6 +557,8 @@ export default defineAgent({
         TalkToDiagram: createTalkToDiagramTool(apiKey),
         SaveDiagramAsMarkdown: createSaveDiagramAsMarkdownTool(apiKey),
         SaveDiagramAsImage: createSaveDiagramAsImageTool(apiKey),
+        OpenHelp: createOpenHelpTool(apiKey),
+        CloseHelp: createCloseHelpTool(apiKey),
         StopVoiceChat: createStopVoiceChatTool(apiKey),
       },
     });

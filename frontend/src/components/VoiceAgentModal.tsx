@@ -21,6 +21,8 @@ interface VoiceAgentModalProps {
   onTalkToDiagram?: (message: string) => void;
   onSaveDiagramAsMarkdown?: () => void;
   onSaveDiagramAsImage?: () => void;
+  onOpenHelp?: () => void;
+  onCloseHelp?: () => void;
 }
 
 function VoiceAssistantStatus() {
@@ -109,7 +111,9 @@ export function VoiceAgentModal({
   onSelectDiagram,
   onTalkToDiagram,
   onSaveDiagramAsMarkdown,
-  onSaveDiagramAsImage
+  onSaveDiagramAsImage,
+  onOpenHelp,
+  onCloseHelp
 }: VoiceAgentModalProps) {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -187,6 +191,16 @@ export function VoiceAgentModal({
         if (onSaveDiagramAsImage) onSaveDiagramAsImage();
       });
 
+      socket.on('voice-agent:OpenHelp', () => {
+        logger.info('OpenHelp event');
+        if (onOpenHelp) onOpenHelp();
+      });
+
+      socket.on('voice-agent:CloseHelp', () => {
+        logger.info('CloseHelp event');
+        if (onCloseHelp) onCloseHelp();
+      });
+
       // Listen for backend requests for current project
       socket.on('voice-agent:request-current-project', () => {
         logger.info('Backend requesting current project ID');
@@ -206,10 +220,12 @@ export function VoiceAgentModal({
         socket.off('voice-agent:StopVoiceChat');
         socket.off('voice-agent:SaveDiagramAsMarkdown');
         socket.off('voice-agent:SaveDiagramAsImage');
+        socket.off('voice-agent:OpenHelp');
+        socket.off('voice-agent:CloseHelp');
         socket.off('voice-agent:request-current-project');
       };
     }
-  }, [apiKey, socket, currentProjectId, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram, onSaveDiagramAsMarkdown, onSaveDiagramAsImage]);
+  }, [apiKey, socket, currentProjectId, onAddProject, onListProjects, onSelectProject, onSwitchToScratchMode, onCreateDiagram, onListDiagrams, onSelectDiagram, onTalkToDiagram, onSaveDiagramAsMarkdown, onSaveDiagramAsImage, onOpenHelp, onCloseHelp]);
 
   const fetchToken = async () => {
     try {

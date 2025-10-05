@@ -1,11 +1,10 @@
-import { useState } from 'react';
-
 interface HelpSectionProps {
   onPromptClick?: (prompt: string) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function HelpSection({ onPromptClick }: HelpSectionProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function HelpSection({ onPromptClick, isOpen, onClose }: HelpSectionProps) {
 
   const examplePrompts = [
     {
@@ -48,33 +47,34 @@ export function HelpSection({ onPromptClick }: HelpSectionProps) {
     { type: 'Spreadsheets', formats: 'XLSX, XLS, CSV', description: 'Convert data into charts and diagrams' }
   ];
 
-  return (
-    <div className="bg-white border-b border-gray-200">
-      {/* Toggle Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-8 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm font-medium text-gray-700">Quick Start Guide</span>
-        </div>
-        <svg
-          className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+  if (!isOpen) return null;
 
-      {/* Expandable Content */}
-      {isOpen && (
-        <div className="px-8 pb-6 bg-gradient-to-b from-gray-50 to-white">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-8 py-6 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Quick Start Guide</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Close help"
+          >
+            <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-8 py-6 bg-gradient-to-b from-gray-50 to-white">
           {/* Example Prompts */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
@@ -233,7 +233,7 @@ export function HelpSection({ onPromptClick }: HelpSectionProps) {
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

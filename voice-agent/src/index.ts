@@ -405,46 +405,49 @@ export default defineAgent({
     console.log('🤖 Model:', process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b');
     console.log('🤖 Cerebras API Key:', process.env.CEREBRAS_API_KEY ? 'present' : 'MISSING');
 
+    // Create OpenAI client with intercepted fetch
+    const OpenAI = require('openai').OpenAI;
+    const openaiClient = new OpenAI({
+      baseURL: 'https://api.cerebras.ai/v1',
+      apiKey: process.env.CEREBRAS_API_KEY,
+    });
+
+    // Intercept the chat completions create method
+    const originalCreate = openaiClient.chat.completions.create.bind(openaiClient.chat.completions);
+    openaiClient.chat.completions.create = async function(...args: any[]) {
+      console.log('🌐 [CEREBRAS REQUEST]');
+      console.log('🌐 Full request object:', JSON.stringify(args[0], null, 2));
+      console.log('🌐 Messages count:', args[0]?.messages?.length || 0);
+      console.log('🌐 Model:', args[0]?.model);
+      console.log('🌐 Tools count:', args[0]?.tools?.length || 0);
+
+      if (args[0]?.messages) {
+        console.log('🌐 === MESSAGES ===');
+        args[0].messages.forEach((msg: any, i: number) => {
+          console.log(`🌐 [${i}] ${msg.role}:`, JSON.stringify(msg.content).slice(0, 500));
+        });
+      }
+
+      try {
+        const result = await originalCreate(...args);
+        console.log('🌐 [CEREBRAS RESPONSE] Success');
+        return result;
+      } catch (error: any) {
+        console.error('🌐 [CEREBRAS ERROR]', error.status, error.message);
+        throw error;
+      }
+    };
+
     const llmInstance = new LLM({
       model: process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b',
       baseURL: 'https://api.cerebras.ai/v1',
       apiKey: process.env.CEREBRAS_API_KEY,
       toolChoice: 'auto',
       parallelToolCalls: false,
+      client: openaiClient,
     });
 
-    // Debug: inspect LLM instance structure
-    console.log('🔍 LLM instance keys:', Object.keys(llmInstance).slice(0, 20));
-    console.log('🔍 LLM instance proto:', Object.getPrototypeOf(llmInstance)?.constructor?.name);
-
-    const llmClient = (llmInstance as any).client;
-    console.log('🔍 LLM client exists:', !!llmClient);
-
-    if (llmClient) {
-      console.log('🔍 LLM client keys:', Object.keys(llmClient).slice(0, 20));
-      console.log('🔍 LLM client has fetch:', !!llmClient.fetch);
-
-      if (llmClient.fetch) {
-        const originalClientFetch = llmClient.fetch.bind(llmClient);
-        llmClient.fetch = async (url: string, init?: any) => {
-          console.log('🌐 [OPENAI CLIENT FETCH]');
-          console.log('🌐 URL:', url);
-          if (init?.body) {
-            const bodyStr = init.body.toString();
-            console.log('🌐 Body length:', bodyStr.length);
-            console.log('🌐 Full Body:', bodyStr);
-          }
-          const response = await originalClientFetch(url, init);
-          console.log('🌐 Response status:', response.status);
-          return response;
-        };
-        console.log('✅ LLM client fetch intercepted');
-      } else {
-        console.warn('⚠️  LLM client exists but no fetch method');
-      }
-    } else {
-      console.warn('⚠️  No LLM client found on instance');
-    }
+    console.log('✅ LLM initialized with intercepted client');
 
     const stt = new STT({
       apiKey: process.env.DEEPGRAM_API_KEY,

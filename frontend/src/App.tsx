@@ -110,6 +110,12 @@ function App() {
     setVoiceAgentOpen(isActive);
   };
 
+  // Detect platform for keyboard shortcut display
+  const isMac = typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+  const shortcutKey = isMac ? '⌘K' : 'Ctrl+K';
+  const shortcutPlatform = isMac ? 'Mac' : 'Windows/Linux';
+
   // Keyboard shortcut for voice agent (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -190,7 +196,7 @@ function App() {
                     isActive={voiceAgentOpen}
                   />
                   <span className="text-xs text-gray-500">
-                    Press <kbd className="px-1.5 py-0.5 bg-gray-200 border border-gray-300 rounded text-xs font-mono">⌘K</kbd> to start
+                    Press <kbd className="px-1.5 py-0.5 bg-gray-200 border border-gray-300 rounded text-xs font-mono">{shortcutKey}</kbd> to start
                   </span>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">

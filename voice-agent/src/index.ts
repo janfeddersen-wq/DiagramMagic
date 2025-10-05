@@ -405,28 +405,33 @@ export default defineAgent({
     stt.stream = function(...args: any[]) {
       console.log('🎤 STT stream() called');
       const stream = originalStream(...args);
+      console.log('🎤 STT stream type:', typeof stream);
+      console.log('🎤 STT stream constructor:', stream?.constructor?.name);
 
-      // Log stream events
-      stream.on('data', (data: any) => {
-        console.log('📥 STT stream data received');
-        if (data?.alternatives) {
-          console.log('📥 Transcription:', data.alternatives[0]?.transcript);
-          console.log('📥 Confidence:', data.alternatives[0]?.confidence);
-        }
-        console.log('📥 Full data:', JSON.stringify(data));
-      });
-
-      stream.on('error', (error: any) => {
-        console.error('❌ STT stream error:', error);
-      });
-
-      stream.on('end', () => {
-        console.log('🏁 STT stream ended');
-      });
-
-      stream.on('close', () => {
-        console.log('🔒 STT stream closed');
-      });
+      // Check if stream is an async generator
+      if (stream && typeof stream[Symbol.asyncIterator] === 'function') {
+        console.log('🎤 STT stream is async iterable');
+        // Wrap the async iterator to log results
+        const originalIterator = stream[Symbol.asyncIterator].bind(stream);
+        stream[Symbol.asyncIterator] = async function* () {
+          console.log('🎤 Starting STT async iteration');
+          try {
+            for await (const data of { [Symbol.asyncIterator]: originalIterator }) {
+              console.log('📥 STT yielded data');
+              if (data?.alternatives) {
+                console.log('📥 Transcription:', data.alternatives[0]?.transcript);
+                console.log('📥 Is final:', data.is_final);
+              }
+              console.log('📥 Full event:', JSON.stringify(data));
+              yield data;
+            }
+            console.log('🏁 STT async iteration completed');
+          } catch (error) {
+            console.error('❌ STT async iteration error:', error);
+            throw error;
+          }
+        };
+      }
 
       return stream;
     };
@@ -544,6 +549,15 @@ export default defineAgent({
       console.log('💬 Full message:', JSON.stringify(msg));
     });
 
+    // Try to catch all session events
+    const originalEmit = session.emit.bind(session);
+    session.emit = function(event: any, ...args: any[]) {
+      if (event.toString().includes('speech') || event.toString().includes('transcript')) {
+        console.log('📡 Session event:', event.toString(), 'args:', JSON.stringify(args).slice(0, 200));
+      }
+      return originalEmit(event, ...args);
+    };
+
     // Add more detailed debugging events
     session.on('function_calls_collected', (calls: any) => {
       console.log('🔧 Function calls collected:', JSON.stringify(calls));
@@ -563,20 +577,32 @@ export default defineAgent({
     });
 
     // Intercept LLM chat calls to see what's being sent
-    const originalChat = llmInstance.chat.bind(llmInstance);
-    llmInstance.chat = async function(...args: any[]) {
-      console.log('🤖 LLM chat() called');
-      console.log('🤖 Chat history length:', args[0]?.chatHistory?.length || 0);
-      console.log('🤖 Latest message:', JSON.stringify(args[0]?.chatHistory?.[args[0]?.chatHistory?.length - 1]));
-      try {
-        const result = await originalChat(...args);
-        console.log('🤖 LLM chat() completed');
-        return result;
-      } catch (error) {
-        console.error('❌ LLM chat() failed:', error);
-        throw error;
-      }
-    };
+    if (typeof llmInstance.chat === 'function') {
+      const originalChat = llmInstance.chat.bind(llmInstance);
+      llmInstance.chat = async function(...args: any[]) {
+        console.log('🤖 LLM chat() called with args count:', args.length);
+        if (args[0]) {
+          console.log('🤖 First arg keys:', Object.keys(args[0]));
+          console.log('🤖 Chat history length:', args[0]?.chatHistory?.length || 0);
+          if (args[0]?.chatHistory?.length > 0) {
+            const lastMsg = args[0].chatHistory[args[0].chatHistory.length - 1];
+            console.log('🤖 Latest message role:', lastMsg?.role);
+            console.log('🤖 Latest message content:', JSON.stringify(lastMsg?.content).slice(0, 300));
+          }
+        }
+        try {
+          const result = await originalChat(...args);
+          console.log('🤖 LLM chat() completed');
+          return result;
+        } catch (error) {
+          console.error('❌ LLM chat() failed with error:', error);
+          console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+          throw error;
+        }
+      };
+    } else {
+      console.warn('⚠️  llmInstance.chat is not a function, cannot intercept');
+    }
 
     await session.start({
       agent,

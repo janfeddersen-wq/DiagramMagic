@@ -471,51 +471,49 @@ export default defineAgent({
 
     console.log('🤖 Agent created with tools:', Object.keys(agent.tools || {}).join(', '));
 
-    // Start the agent directly (no separate session needed)
-    await agent.start({
-      room: ctx.room,
-    });
+    // Start the agent using the built-in start method (which creates and manages the session internally)
+    const session = await agent.start(ctx.room);
 
-    console.log('✅ Voice Agent started');
+    console.log('✅ Voice Agent session started');
 
-    // Add event listeners for debugging on the agent
-    agent.on('agent_started_speaking', () => {
+    // Add event listeners for debugging
+    session.on('agent_started_speaking', () => {
       console.log('🗣️  Agent started speaking');
     });
 
-    agent.on('agent_stopped_speaking', () => {
+    session.on('agent_stopped_speaking', () => {
       console.log('🤐 Agent stopped speaking');
     });
 
-    agent.on('user_started_speaking', () => {
+    session.on('user_started_speaking', () => {
       console.log('👂 User started speaking');
     });
 
-    agent.on('user_stopped_speaking', () => {
+    session.on('user_stopped_speaking', () => {
       console.log('🤫 User stopped speaking');
     });
 
-    agent.on('user_speech_committed', (msg: any) => {
+    session.on('user_speech_committed', (msg: any) => {
       console.log('💬 User speech committed - text length:', msg?.text?.length || 0);
       console.log('💬 User speech text:', msg?.text || '(empty)');
       console.log('💬 Full message:', JSON.stringify(msg));
     });
 
-    // Try to catch all agent events
-    const originalEmit = agent.emit.bind(agent);
-    agent.emit = function(event: any, ...args: any[]) {
+    // Try to catch all session events
+    const originalEmit = session.emit.bind(session);
+    session.emit = function(event: any, ...args: any[]) {
       if (event.toString().includes('speech') || event.toString().includes('transcript')) {
-        console.log('📡 Agent event:', event.toString(), 'args:', JSON.stringify(args).slice(0, 200));
+        console.log('📡 Session event:', event.toString(), 'args:', JSON.stringify(args).slice(0, 200));
       }
       return originalEmit(event, ...args);
     };
 
     // Add more detailed debugging events
-    agent.on('function_calls_collected', (calls: any) => {
+    session.on('function_calls_collected', (calls: any) => {
       console.log('🔧 Function calls collected:', JSON.stringify(calls));
     });
 
-    agent.on('function_calls_finished', (result: any) => {
+    session.on('function_calls_finished', (result: any) => {
       console.log('✅ Function calls finished:', JSON.stringify(result));
     });
 

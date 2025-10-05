@@ -83,7 +83,7 @@ export function WelcomePage({ onShowLogin, onShowSignup }: WelcomePageProps) {
                 </svg>
                 <div>
                   <p className="font-semibold text-gray-900">Voice Assistant</p>
-                  <p className="text-sm text-gray-600">Create diagrams using voice commands</p>
+                  <p className="text-sm text-gray-600">Complete hands free Application control</p>
                 </div>
               </li>
             </ul>

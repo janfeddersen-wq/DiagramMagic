@@ -143,6 +143,9 @@ export function VoiceAgentModal({
   // Register API key with backend Socket.IO and listen for voice agent events
   useEffect(() => {
     if (apiKey && socket) {
+      console.log('[VoiceAgent] Setting up event listeners...');
+      console.log('[VoiceAgent] Current version prop:', currentVersion);
+      console.log('[VoiceAgent] Total versions prop:', totalVersions);
       logger.info('Registering voice agent API key...');
       const userToken = localStorage.getItem('auth_token');
       socket.emit('voice-agent:register', { apiKey, userToken });

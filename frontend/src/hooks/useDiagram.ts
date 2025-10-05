@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Diagram, DiagramVersion, createDiagramVersion, getDiagram } from '../services/projectsApi';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useDiagram');
 
 export function useDiagram() {
   const [currentDiagram, setCurrentDiagram] = useState<string>('');
@@ -16,7 +19,7 @@ export function useDiagram() {
         const version = await createDiagramVersion(currentDiagramObj.id, mermaidCode);
         setCurrentVersion(version);
       } catch (error) {
-        console.error('Failed to save diagram version:', error);
+        logger.error('Failed to save diagram version:', error);
       }
     }
   };
@@ -41,7 +44,7 @@ export function useDiagram() {
         setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
       }
     } catch (error) {
-      console.error('Failed to load diagram:', error);
+      logger.error('Failed to load diagram:', error);
       // Reset state on error
       setCurrentDiagramObj(null);
       setCurrentVersion(null);
@@ -78,7 +81,7 @@ export function useDiagram() {
         setCurrentDiagram(fullDiagram.latestVersion.mermaid_code);
       }
     } catch (error) {
-      console.error('Failed to load diagram:', error);
+      logger.error('Failed to load diagram:', error);
       // Reset state on error
       setCurrentDiagramObj(null);
       setCurrentVersion(null);

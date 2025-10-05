@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Project, listProjects, createProject, deleteProject } from '../services/projectsApi';
 import { ConfirmModal } from './Modal';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ProjectSelector');
 
 interface ProjectSelectorProps {
   currentProject: Project | null;
@@ -46,7 +49,7 @@ export function ProjectSelector({ currentProject, onSelectProject, isScratchMode
       const data = await listProjects();
       setProjects(data);
     } catch (error) {
-      console.error('Failed to load projects:', error);
+      logger.error('Failed to load projects:', error);
     }
   };
 
@@ -61,7 +64,7 @@ export function ProjectSelector({ currentProject, onSelectProject, isScratchMode
       onSelectProject(project);
       setIsOpen(false);
     } catch (error) {
-      console.error('Failed to create project:', error);
+      logger.error('Failed to create project:', error);
     }
   };
 
@@ -80,7 +83,7 @@ export function ProjectSelector({ currentProject, onSelectProject, isScratchMode
         onScratchMode();
       }
     } catch (error) {
-      console.error('Failed to delete project:', error);
+      logger.error('Failed to delete project:', error);
     }
   };
 

@@ -9,7 +9,6 @@ import { STT } from '@livekit/agents-plugin-deepgram';
 import { TTS } from '@livekit/agents-plugin-cartesia';
 import { VAD } from '@livekit/agents-plugin-silero';
 import { fileURLToPath } from 'url';
-import OpenAI from 'openai';
 import { createLogger } from './utils/logger.js';
 
 const logger = createLogger('VoiceAgent');
@@ -362,84 +361,10 @@ export default defineAgent({
       logger.warn('⚠️  No API key found in participant metadata - UI tools will not work');
     }
 
-    // Intercept global fetch to log Cerebras requests
-    const originalFetch = global.fetch;
-    global.fetch = async (url: any, init?: any) => {
-      const urlString = typeof url === 'string' ? url : url.toString();
-
-      if (urlString.includes('cerebras')) {
-        logger.debug('🌐 [CEREBRAS REQUEST INTERCEPTED]');
-        logger.debug('🌐 URL:', urlString);
-        logger.debug('🌐 Method:', init?.method || 'GET');
-
-        if (init?.body) {
-          logger.debug('🌐 Raw Body:', init.body);
-          try {
-            const bodyObj = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
-            logger.debug('🌐 Messages count:', bodyObj.messages?.length || 0);
-            logger.debug('🌐 Model:', bodyObj.model);
-            logger.debug('🌐 Tools:', bodyObj.tools?.length || 0);
-            logger.debug('🌐 Stream:', bodyObj.stream);
-
-            if (bodyObj.messages && bodyObj.messages.length > 0) {
-              logger.debug('🌐 === MESSAGES ===');
-              bodyObj.messages.forEach((msg: any, i: number) => {
-                logger.debug(`🌐 [${i}] ${msg.role}:`, JSON.stringify(msg.content || msg).slice(0, 500));
-              });
-            } else {
-              logger.debug('🌐 ⚠️  NO MESSAGES IN REQUEST!');
-            }
-          } catch (e) {
-            logger.debug('🌐 Failed to parse body:', e);
-          }
-        }
-      }
-
-      const response = await originalFetch(url, init);
-
-      if (urlString.includes('cerebras.ai')) {
-        logger.debug('🌐 [CEREBRAS RESPONSE] Status:', response.status, response.statusText);
-      }
-
-      return response;
-    };
-
     // Initialize components
     logger.info('🤖 Initializing LLM...');
     logger.info('🤖 Model:', process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b');
     logger.info('🤖 Cerebras API Key:', process.env.CEREBRAS_API_KEY ? 'present' : 'MISSING');
-
-    // Create OpenAI client with intercepted fetch
-    const openaiClient = new OpenAI({
-      baseURL: 'https://api.cerebras.ai/v1',
-      apiKey: process.env.CEREBRAS_API_KEY,
-    });
-
-    // Intercept the chat completions create method
-    const originalCreate = openaiClient.chat.completions.create.bind(openaiClient.chat.completions);
-    openaiClient.chat.completions.create = async function(...args: any[]) {
-      logger.debug('🌐 [CEREBRAS REQUEST]');
-      logger.debug('🌐 Full request object:', JSON.stringify(args[0], null, 2));
-      logger.debug('🌐 Messages count:', args[0]?.messages?.length || 0);
-      logger.debug('🌐 Model:', args[0]?.model);
-      logger.debug('🌐 Tools count:', args[0]?.tools?.length || 0);
-
-      if (args[0]?.messages) {
-        logger.debug('🌐 === MESSAGES ===');
-        args[0].messages.forEach((msg: any, i: number) => {
-          logger.debug(`🌐 [${i}] ${msg.role}:`, JSON.stringify(msg.content).slice(0, 500));
-        });
-      }
-
-      try {
-        const result = await originalCreate(...args);
-        logger.debug('🌐 [CEREBRAS RESPONSE] Success');
-        return result;
-      } catch (error: any) {
-        logger.error('🌐 [CEREBRAS ERROR]', error.status, error.message);
-        throw error;
-      }
-    };
 
     const llmInstance = new LLM({
       model: process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b',
@@ -447,10 +372,9 @@ export default defineAgent({
       apiKey: process.env.CEREBRAS_API_KEY,
       toolChoice: 'auto',
       parallelToolCalls: false,
-      client: openaiClient,
     });
 
-    logger.info('✅ LLM initialized with intercepted client');
+    logger.info('✅ LLM initialized');
 
     const stt = new STT({
       apiKey: process.env.DEEPGRAM_API_KEY,

@@ -12,6 +12,10 @@
  * - Version control operations
  */
 
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('VoiceAgentTools');
+
 export interface VoiceAgentToolParameter {
   type: string;
   description: string;
@@ -37,10 +41,10 @@ class VoiceAgentToolRegistry {
    */
   register(tool: VoiceAgentToolDefinition): void {
     if (this.tools.has(tool.name)) {
-      console.warn(`Tool "${tool.name}" is already registered. Overwriting.`);
+      logger.warn(`Tool "${tool.name}" is already registered. Overwriting.`);
     }
     this.tools.set(tool.name, tool);
-    console.log(`Voice agent tool registered: ${tool.name}`);
+    logger.info(`Voice agent tool registered: ${tool.name}`);
   }
 
   /**
@@ -48,7 +52,7 @@ class VoiceAgentToolRegistry {
    */
   unregister(name: string): void {
     this.tools.delete(name);
-    console.log(`Voice agent tool unregistered: ${name}`);
+    logger.info(`Voice agent tool unregistered: ${name}`);
   }
 
   /**
@@ -77,7 +81,7 @@ class VoiceAgentToolRegistry {
     try {
       return await tool.execute(params);
     } catch (error) {
-      console.error(`Error executing tool "${name}":`, error);
+      logger.error(`Error executing tool "${name}":`, error);
       throw error;
     }
   }

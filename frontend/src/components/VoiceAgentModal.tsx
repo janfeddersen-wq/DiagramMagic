@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { LiveKitRoom, RoomAudioRenderer, useVoiceAssistant } from '@livekit/components-react';
 import { Socket } from 'socket.io-client';
 import '@livekit/components-styles';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('VoiceAgentModal');
 
 interface VoiceAgentModalProps {
   isOpen: boolean;
@@ -117,60 +120,60 @@ export function VoiceAgentModal({
   // Register API key with backend Socket.IO and listen for voice agent events
   useEffect(() => {
     if (apiKey && socket) {
-      console.log('✨ [UI] Registering voice agent API key...');
+      logger.info('Registering voice agent API key...');
       const userToken = localStorage.getItem('auth_token');
       socket.emit('voice-agent:register', { apiKey, userToken });
 
       // Listen for all voice agent tool events
       socket.on('voice-agent:AddProject', (params) => {
-        console.log('✅ [UI] AddProject event:', params);
+        logger.info('AddProject event:', params);
         if (onAddProject) onAddProject(params.name);
       });
 
       socket.on('voice-agent:ListProjects', () => {
-        console.log('✅ [UI] ListProjects event');
+        logger.info('ListProjects event');
         if (onListProjects) onListProjects();
       });
 
       socket.on('voice-agent:SelectProject', (params) => {
-        console.log('✅ [UI] SelectProject event:', params);
+        logger.info('SelectProject event:', params);
         if (onSelectProject) onSelectProject(params.projectId);
       });
 
       socket.on('voice-agent:SwitchToScratchMode', () => {
-        console.log('✅ [UI] SwitchToScratchMode event');
+        logger.info('SwitchToScratchMode event');
         if (onSwitchToScratchMode) onSwitchToScratchMode();
       });
 
       socket.on('voice-agent:CreateDiagram', (params) => {
-        console.log('✅ [UI] CreateDiagram event:', params);
+        logger.info('CreateDiagram event:', params);
         if (onCreateDiagram) onCreateDiagram(params.name);
       });
 
       socket.on('voice-agent:TalkToDiagram', (params) => {
-        console.log('✅ [UI] TalkToDiagram event:', params);
+        logger.info('TalkToDiagram event:', params);
         if (onTalkToDiagram) onTalkToDiagram(params.message);
       });
 
       socket.on('voice-agent:ListDiagrams', () => {
-        console.log('✅ [UI] ListDiagrams event');
+        logger.info('ListDiagrams event');
         if (onListDiagrams) onListDiagrams();
       });
 
       socket.on('voice-agent:SelectDiagram', (params) => {
-        console.log('✅ [UI] SelectDiagram event:', params);
+        logger.info('SelectDiagram event:', params);
         if (onSelectDiagram) onSelectDiagram(params.diagramId);
       });
 
       socket.on('voice-agent:StopVoiceChat', () => {
-        console.log('✅ [UI] StopVoiceChat event - closing modal');
+        logger.info('StopVoiceChat event - closing modal');
         handleDisconnect();
       });
 
       // Listen for backend requests for current project
       socket.on('voice-agent:request-current-project', () => {
-        console.log('✅ [UI] Backend requesting current project ID');
-        console.log('✅ [UI] Current project ID:', currentProjectId);
+        logger.info('Backend requesting current project ID');
+        logger.info('Current project ID:', currentProjectId);
         socket.emit('voice-agent:current-project-response', { projectId: currentProjectId });
       });
 
@@ -215,7 +218,7 @@ export function VoiceAgentModal({
       setConnected(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect to voice agent');
-      console.error('Error fetching token:', err);
+      logger.error('Error fetching token:', err);
     } finally {
       setConnecting(false);
     }

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Diagram, listDiagramsByProject, createDiagram, deleteDiagram } from '../services/projectsApi';
 import { ConfirmModal } from './Modal';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('DiagramsSidebar');
 
 interface DiagramsSidebarProps {
   projectId: number | null;
@@ -40,7 +43,7 @@ export function DiagramsSidebar({ projectId, currentDiagram, onSelectDiagram, on
       const data = await listDiagramsByProject(projectId);
       setDiagrams(data);
     } catch (error) {
-      console.error('Failed to load diagrams:', error);
+      logger.error('Failed to load diagrams:', error);
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +59,7 @@ export function DiagramsSidebar({ projectId, currentDiagram, onSelectDiagram, on
       setIsCreating(false);
       onSelectDiagram(result.diagram);
     } catch (error) {
-      console.error('Failed to create diagram:', error);
+      logger.error('Failed to create diagram:', error);
     }
   };
 
@@ -75,7 +78,7 @@ export function DiagramsSidebar({ projectId, currentDiagram, onSelectDiagram, on
         onSelectDiagram(null);
       }
     } catch (error) {
-      console.error('Failed to delete diagram:', error);
+      logger.error('Failed to delete diagram:', error);
     }
   };
 

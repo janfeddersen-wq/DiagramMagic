@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 import { Socket } from 'socket.io-client';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useMermaid');
 
 export function useMermaid(diagram: string, socket?: Socket, onRenderComplete?: (success: boolean, error?: string) => void) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,7 +51,7 @@ export function useMermaid(diagram: string, socket?: Socket, onRenderComplete?: 
           onRenderComplete(true);
         }
       } catch (error) {
-        console.error('Mermaid rendering error:', error);
+        logger.error('Mermaid rendering error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
         // Clean up any error elements mermaid created

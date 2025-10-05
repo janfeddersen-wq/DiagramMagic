@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('AuthContext');
 
 interface User {
   id: number;
@@ -42,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setUser(response.data.user);
     } catch (error) {
-      console.error('Failed to fetch user:', error);
+      logger.error('Failed to fetch user:', error);
       // Token might be invalid, clear it
       localStorage.removeItem('auth_token');
       setToken(null);

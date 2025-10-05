@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { listProjects, createProject, deleteProject, Project } from '../services/projectsApi';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ProjectsSidebar');
 
 interface ProjectsSidebarProps {
   currentProject: Project | null;
@@ -28,7 +31,7 @@ export function ProjectsSidebar({ currentProject, onSelectProject, onScratchMode
       const data = await listProjects();
       setProjects(data);
     } catch (error) {
-      console.error('Failed to load projects:', error);
+      logger.error('Failed to load projects:', error);
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +47,7 @@ export function ProjectsSidebar({ currentProject, onSelectProject, onScratchMode
       setIsCreating(false);
       onSelectProject(project);
     } catch (error) {
-      console.error('Failed to create project:', error);
+      logger.error('Failed to create project:', error);
     }
   };
 
@@ -59,7 +62,7 @@ export function ProjectsSidebar({ currentProject, onSelectProject, onScratchMode
         onScratchMode();
       }
     } catch (error) {
-      console.error('Failed to delete project:', error);
+      logger.error('Failed to delete project:', error);
     }
   };
 

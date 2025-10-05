@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { VoiceAgentService, VoiceAgentState } from '../services/voiceAgent';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useVoiceAgent');
 
 interface UseVoiceAgentOptions {
   tokenEndpoint: string;
@@ -43,7 +46,7 @@ export function useVoiceAgent({ tokenEndpoint, onError }: UseVoiceAgentOptions) 
     try {
       await serviceRef.current.connect();
     } catch (error) {
-      console.error('Failed to connect voice agent:', error);
+      logger.error('Failed to connect voice agent:', error);
     }
   };
 

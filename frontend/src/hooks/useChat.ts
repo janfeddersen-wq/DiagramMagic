@@ -3,6 +3,9 @@ import { ChatMessage } from '../types';
 import { generateDiagram } from '../services/api';
 import { getDiagramChatHistory } from '../services/projectsApi';
 import { FileProcessedData } from '../components/FileUpload';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useChat');
 
 export function useChat(
   currentDiagram: string,
@@ -25,7 +28,7 @@ export function useChat(
       const chatMessages = await getDiagramChatHistory(diagramId);
       setMessages(chatMessages.map(msg => ({ role: msg.role, content: msg.content })));
     } catch (error) {
-      console.error('Failed to load chat history:', error);
+      logger.error('Failed to load chat history:', error);
     }
   };
 
@@ -61,7 +64,7 @@ export function useChat(
         setMessages((prev) => [...prev, errorMessage]);
       }
     } catch (error) {
-      console.error('Error:', error);
+      logger.error('Error:', error);
       const errorMessage: ChatMessage = {
         role: 'assistant',
         content: `Error: ${error instanceof Error ? error.message : 'Failed to communicate with server'}`
@@ -108,7 +111,7 @@ export function useChat(
           setMessages((prev) => [...prev, errorMessage]);
         }
       } catch (error) {
-        console.error('Error:', error);
+        logger.error('Error:', error);
         const errorMessage: ChatMessage = {
           role: 'assistant',
           content: `Error: ${error instanceof Error ? error.message : 'Failed to communicate with server'}`

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Project, Diagram, DiagramVersion, getDiagram } from '../services/projectsApi';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useProject');
 
 export function useProject() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -36,7 +39,7 @@ export function useProject() {
           }
         }
       } catch (error) {
-        console.error('Failed to load project diagrams:', error);
+        logger.error('Failed to load project diagrams:', error);
       }
     }
   };

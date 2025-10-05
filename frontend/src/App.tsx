@@ -19,6 +19,9 @@ import { useProject } from './hooks/useProject';
 import { useDiagram } from './hooks/useDiagram';
 import { useModals } from './hooks/useModals';
 import { useChat } from './hooks/useChat';
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('App');
 
 function App() {
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -45,17 +48,17 @@ function App() {
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('Connected to Socket.IO server');
+      logger.info('Connected to Socket.IO server');
     });
 
     socket.on('renderValidationRequest', (request: RenderValidationRequest) => {
-      console.log('Received render validation request:', request);
+      logger.info('Received render validation request:', request);
       currentValidationRequestRef.current = request.requestId;
       diagram.updateDiagram(request.mermaidCode, project.isScratchMode);
     });
 
     socket.on('disconnect', () => {
-      console.log('Disconnected from Socket.IO server');
+      logger.info('Disconnected from Socket.IO server');
     });
 
     return () => {
@@ -70,7 +73,7 @@ function App() {
         success,
         error
       };
-      console.log('Sending render validation response:', response);
+      logger.info('Sending render validation response:', response);
       socketRef.current.emit('renderValidationResponse', response);
       currentValidationRequestRef.current = null;
     }

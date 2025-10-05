@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { DiagramVersion, listDiagramVersions } from '../services/projectsApi';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('DiagramVersionHistory');
 
 interface DiagramVersionHistoryProps {
   diagramId: number | null;
@@ -26,7 +29,7 @@ export function DiagramVersionHistory({ diagramId, currentVersion, onSelectVersi
       const data = await listDiagramVersions(diagramId);
       setVersions(data);
     } catch (error) {
-      console.error('Failed to load versions:', error);
+      logger.error('Failed to load versions:', error);
     } finally {
       setIsLoading(false);
     }

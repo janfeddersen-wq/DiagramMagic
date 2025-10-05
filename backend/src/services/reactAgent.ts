@@ -52,7 +52,7 @@ export class ReactAgent {
 
       // Validate the diagram if Socket.IO is available
       if (this.io && cleanedDiagram && socketId) {
-        const maxRetries = 30;
+        const maxRetries = 40;
         let attempt = 0;
         let lastError: string | undefined;
 
@@ -188,46 +188,51 @@ When responding, you MUST return a JSON object with this exact structure:
 
 IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
 
-# CRITICAL FIX RULES - FOLLOW STRICTLY:
+# ABSOLUTE RULES - NEVER VIOLATE:
 
-1. **DO NOT CHANGE THE DIAGRAM TYPE** unless it's fundamentally wrong for the request
+1. **NEVER EVER CHANGE THE DIAGRAM TYPE** - This is the most important rule:
+   - If it's xychart-beta, keep it xychart-beta (DO NOT change to graph, flowchart, or any other type)
    - If it's a flowchart, keep it a flowchart
-   - If it's an xychart-beta, keep it xychart-beta
    - If it's a sequenceDiagram, keep it sequenceDiagram
-   - Only change type if the original choice was completely inappropriate
+   - The diagram type keyword (first line) must NEVER change
+   - Even if you think another type would work better, DO NOT CHANGE IT
+   - The original diagram type was chosen for a reason - respect that choice
 
-2. **FIX ONLY THE SYNTAX ERROR** - do not redesign or restructure:
-   - Fix incorrect keywords or typos
-   - Fix malformed node definitions
-   - Fix broken arrow syntax
+2. **FIX ONLY THE SYNTAX ERROR** - Make minimal changes:
+   - Fix typos in keywords (but keep the same diagram type)
+   - Fix malformed data definitions
+   - Fix broken syntax within the diagram type
    - Fix indentation issues
    - Fix quote/bracket mismatches
-   - Keep all content and structure the same
+   - DO NOT restructure, redesign, or simplify
 
-3. **PRESERVE THE DIAGRAM'S INTENT AND CONTENT**:
-   - Keep all nodes, edges, and labels intact
+3. **PRESERVE EXACT CONTENT**:
+   - Keep all data points, nodes, edges, and labels exactly as they are
    - Maintain the same flow and relationships
-   - Don't add or remove elements unless they cause the error
-   - Don't simplify or change the diagram's logic
+   - Don't remove elements (unless they directly cause a parse error)
+   - Don't add new elements (unless required by the diagram type syntax)
 
-4. **REFERENCE THE EXACT SYNTAX** from the guide below:
-   - Find the diagram type in the reference
-   - Compare the broken code with the correct syntax pattern
+4. **DEBUG USING THE SYNTAX REFERENCE**:
+   - Find the EXACT diagram type in the reference below
+   - Study the "Basic Syntax" and "Example" sections for that type
+   - Compare line-by-line with the correct syntax pattern
    - Apply ONLY the syntax fix needed
    - Follow the exact formatting shown in examples
 
-5. **COMMON FIXES** (apply only what's needed):
-   - Missing or wrong diagram keyword
-   - Incorrect arrow syntax (-->, =>, ->>)
-   - Wrong node shape brackets
-   - Missing quotes around labels with special chars
-   - Indentation errors in nested structures
+5. **COMMON XYCHART-BETA FIXES** (if diagram type is xychart-beta):
+   - Ensure x-axis array has square brackets: x-axis [item1, item2, ...]
+   - Ensure y-axis has proper format: y-axis "Label" min --> max
+   - Ensure bar/line data is in square brackets: bar [value1, value2, ...]
+   - Check for proper indentation (4 spaces for each line after diagram type)
+   - Verify all values are numbers (not strings) in data arrays
 
 # Mermaid Syntax Reference
 ${this.mermaidSyntaxGuide}
 
 Recent conversation context:
-${chatHistory.slice(-5).map(m => `${m.role}: ${m.content}`).join('\n')}`
+${chatHistory.slice(-5).map(m => `${m.role}: ${m.content}`).join('\n')}
+
+REMEMBER: The diagram type on the first line (like xychart-beta, flowchart, sequenceDiagram) must NEVER change. Only fix syntax errors within that type.`
       },
       {
         role: 'user',

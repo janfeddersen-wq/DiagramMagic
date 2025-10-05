@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import { db } from '../database/connection.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('ProjectsController');
 
 export class ProjectsController {
   async list(req: Request, res: Response) {
@@ -17,7 +20,7 @@ export class ProjectsController {
 
       return res.json({ projects });
     } catch (error) {
-      console.error('List projects error:', error);
+      logger.error('List projects error:', error);
       return res.status(500).json({ error: 'Failed to list projects' });
     }
   }
@@ -46,7 +49,7 @@ export class ProjectsController {
 
       return res.status(201).json({ project });
     } catch (error) {
-      console.error('Create project error:', error);
+      logger.error('Create project error:', error);
       return res.status(500).json({ error: 'Failed to create project' });
     }
   }
@@ -72,7 +75,7 @@ export class ProjectsController {
 
       return res.json({ project });
     } catch (error) {
-      console.error('Get project error:', error);
+      logger.error('Get project error:', error);
       return res.status(500).json({ error: 'Failed to get project' });
     }
   }
@@ -104,7 +107,7 @@ export class ProjectsController {
 
       return res.json({ project });
     } catch (error) {
-      console.error('Update project error:', error);
+      logger.error('Update project error:', error);
       return res.status(500).json({ error: 'Failed to update project' });
     }
   }
@@ -129,7 +132,7 @@ export class ProjectsController {
 
       return res.json({ success: true });
     } catch (error) {
-      console.error('Delete project error:', error);
+      logger.error('Delete project error:', error);
       return res.status(500).json({ error: 'Failed to delete project' });
     }
   }
@@ -163,7 +166,7 @@ export class ProjectsController {
 
       return res.json({ messages });
     } catch (error) {
-      console.error('Get chat history error:', error);
+      logger.error('Get chat history error:', error);
       return res.status(500).json({ error: 'Failed to get chat history' });
     }
   }

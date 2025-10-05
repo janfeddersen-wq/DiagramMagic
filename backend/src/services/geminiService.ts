@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs/promises';
 import { ImageToMermaidService } from './imageToMermaidService.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('GeminiService');
 
 export class GeminiService implements ImageToMermaidService {
   private genAI: GoogleGenerativeAI;
@@ -20,7 +23,7 @@ export class GeminiService implements ImageToMermaidService {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`Gemini image conversion attempt ${attempt}/${maxRetries}`);
+        logger.info(`Gemini image conversion attempt ${attempt}/${maxRetries}`);
 
         // Read the image file
         const imageBuffer = await fs.readFile(imagePath);
@@ -64,7 +67,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
 
         const response = await result.response;
         const text = response.text();
-        console.log(`Gemini raw response (attempt ${attempt}):`, text.substring(0, 500));
+        logger.debug(`Gemini raw response (attempt ${attempt}): ${text.substring(0, 500)}`);
 
         // Parse the JSON response - try multiple extraction methods
         let parsed: any = null;
@@ -89,7 +92,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
               const jsonStr = text.substring(jsonStart, jsonEnd);
               parsed = JSON.parse(jsonStr);
             } catch (e) {
-              console.error('Method 1 failed (balanced braces):', e);
+              logger.error('Method 1 failed (balanced braces):', e);
             }
           }
         }
@@ -101,7 +104,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
             try {
               parsed = JSON.parse(codeBlockMatch[1]);
             } catch (e) {
-              console.error('Method 2 failed (code block):', e);
+              logger.error('Method 2 failed (code block):', e);
             }
           }
         }
@@ -113,7 +116,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
             try {
               parsed = JSON.parse(jsonMatch[0]);
             } catch (e) {
-              console.error('Method 3 failed (greedy regex):', e);
+              logger.error('Method 3 failed (greedy regex):', e);
             }
           }
         }
@@ -128,12 +131,12 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        console.error(`Gemini attempt ${attempt} failed:`, lastError.message);
+        logger.error(`Gemini attempt ${attempt} failed: ${lastError.message}`);
 
         // If this isn't the last attempt, wait before retrying
         if (attempt < maxRetries) {
           const delay = attempt * 1000; // Progressive delay: 1s, 2s
-          console.log(`Retrying in ${delay}ms...`);
+          logger.info(`Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
@@ -147,7 +150,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
    */
   async transcribeAudio(audioPath: string, mimeType: string): Promise<string> {
     try {
-      console.log('Gemini audio transcription started');
+      logger.info('Gemini audio transcription started');
 
       // Read the audio file
       const audioBuffer = await fs.readFile(audioPath);
@@ -167,11 +170,11 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
 
       const response = await result.response;
       const text = response.text().trim();
-      console.log('Gemini transcription result:', text);
+      logger.info('Gemini transcription result: ' + text);
 
       return text;
     } catch (error) {
-      console.error('Gemini transcription error:', error);
+      logger.error('Gemini transcription error:', error);
       throw new Error(`Failed to transcribe audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

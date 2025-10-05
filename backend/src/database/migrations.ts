@@ -1,4 +1,7 @@
 import Database from 'better-sqlite3';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('Migrations');
 
 export function runMigrations(db: Database.Database) {
   // Create users table
@@ -72,9 +75,9 @@ export function runMigrations(db: Database.Database) {
   const hasDiagramId = tableInfo.some((col: any) => col.name === 'diagram_id');
 
   if (!hasDiagramId) {
-    console.log('⚙️  Adding diagram_id column to chat_messages table...');
+    logger.info('Adding diagram_id column to chat_messages table...');
     db.exec(`ALTER TABLE chat_messages ADD COLUMN diagram_id INTEGER REFERENCES diagrams(id) ON DELETE CASCADE;`);
-    console.log('✅ diagram_id column added successfully');
+    logger.info('diagram_id column added successfully');
   }
 
   // Create indexes for better performance (after ensuring all columns exist)
@@ -87,5 +90,5 @@ export function runMigrations(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   `);
 
-  console.log('✅ Database migrations completed successfully');
+  logger.info('Database migrations completed successfully');
 }

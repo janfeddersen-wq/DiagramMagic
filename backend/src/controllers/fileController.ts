@@ -3,7 +3,10 @@ import { convertFileToMarkdown, ExcelConversionOptions } from '../utils/fileConv
 import { GeminiService } from '../services/geminiService.js';
 import { OpenRouterService } from '../services/openRouterService.js';
 import { ImageToMermaidService } from '../services/imageToMermaidService.js';
+import { createLogger } from '../utils/logger.js';
 import fs from 'fs/promises';
+
+const logger = createLogger('FileController');
 
 export class FileController {
   private imageService: ImageToMermaidService | null = null;
@@ -121,7 +124,7 @@ export class FileController {
       return res.status(400).json({ error: `Unsupported file type: ${extension}` });
 
     } catch (error) {
-      console.error('File upload error:', error);
+      logger.error('File upload error:', error);
       return res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to process file'
       });
@@ -143,7 +146,7 @@ export class FileController {
       });
 
     } catch (error) {
-      console.error('Sheet selection error:', error);
+      logger.error('Sheet selection error:', error);
       return res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to select sheet'
       });
@@ -176,7 +179,7 @@ export class FileController {
         throw error;
       }
     } catch (error) {
-      console.error('Audio transcription error:', error);
+      logger.error('Audio transcription error:', error);
       return res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to transcribe audio'
       });

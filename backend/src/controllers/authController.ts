@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { db } from '../database/connection.js';
 import { hashPassword, comparePassword, generateToken } from '../utils/auth.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('AuthController');
 
 export class AuthController {
   async signup(req: Request, res: Response) {
@@ -46,7 +49,7 @@ export class AuthController {
         },
       });
     } catch (error) {
-      console.error('Signup error:', error);
+      logger.error('Signup error:', error);
       return res.status(500).json({ error: 'Failed to create user' });
     }
   }
@@ -89,7 +92,7 @@ export class AuthController {
         },
       });
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
       return res.status(500).json({ error: 'Failed to login' });
     }
   }
@@ -112,7 +115,7 @@ export class AuthController {
 
       return res.json({ user });
     } catch (error) {
-      console.error('Get user error:', error);
+      logger.error('Get user error:', error);
       return res.status(500).json({ error: 'Failed to get user' });
     }
   }

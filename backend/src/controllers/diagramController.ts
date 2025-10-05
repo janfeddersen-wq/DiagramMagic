@@ -3,6 +3,9 @@ import { ReactAgent } from '../services/reactAgent.js';
 import { DiagramRequest } from '../types/index.js';
 import { Server } from 'socket.io';
 import { db } from '../database/connection.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('DiagramController');
 
 export class DiagramController {
   private agent: ReactAgent;
@@ -55,14 +58,14 @@ export class DiagramController {
             })
             .execute();
         } catch (dbError) {
-          console.error('Failed to save chat messages:', dbError);
+          logger.error('Failed to save chat messages:', dbError);
           // Don't fail the request if database save fails
         }
       }
 
       res.json(result);
     } catch (error) {
-      console.error('Error generating diagram:', error);
+      logger.error('Error generating diagram:', error);
       res.status(500).json({
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'

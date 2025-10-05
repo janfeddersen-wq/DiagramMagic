@@ -1,6 +1,9 @@
 import OpenAI from 'openai';
 import fs from 'fs/promises';
 import { ImageToMermaidService } from './imageToMermaidService.js';
+import { createLogger } from '../utils/logger.js';
+
+const logger = createLogger('OpenRouterService');
 
 export class OpenRouterService implements ImageToMermaidService {
   private client: OpenAI;
@@ -23,7 +26,7 @@ export class OpenRouterService implements ImageToMermaidService {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`OpenRouter image conversion attempt ${attempt}/${maxRetries}`);
+        logger.info(`OpenRouter image conversion attempt ${attempt}/${maxRetries}`);
 
         // Read the image file
         const imageBuffer = await fs.readFile(imagePath);
@@ -71,7 +74,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
         });
 
         const text = response.choices[0]?.message?.content || '';
-        console.log(`OpenRouter raw response (attempt ${attempt}):`, text.substring(0, 500));
+        logger.debug(`OpenRouter raw response (attempt ${attempt}): ${text.substring(0, 500)}`);
 
         // Parse the JSON response - try multiple extraction methods
         let parsed: any = null;
@@ -96,7 +99,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
               const jsonStr = text.substring(jsonStart, jsonEnd);
               parsed = JSON.parse(jsonStr);
             } catch (e) {
-              console.error('Method 1 failed (balanced braces):', e);
+              logger.error('Method 1 failed (balanced braces):', e);
             }
           }
         }
@@ -108,7 +111,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
             try {
               parsed = JSON.parse(codeBlockMatch[1]);
             } catch (e) {
-              console.error('Method 2 failed (code block):', e);
+              logger.error('Method 2 failed (code block):', e);
             }
           }
         }
@@ -120,7 +123,7 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
             try {
               parsed = JSON.parse(jsonMatch[0]);
             } catch (e) {
-              console.error('Method 3 failed (greedy regex):', e);
+              logger.error('Method 3 failed (greedy regex):', e);
             }
           }
         }
@@ -135,12 +138,12 @@ Make sure the Mermaid code is syntactically correct and follows Mermaid best pra
         };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        console.error(`OpenRouter attempt ${attempt} failed:`, lastError.message);
+        logger.error(`OpenRouter attempt ${attempt} failed: ${lastError.message}`);
 
         // If this isn't the last attempt, wait before retrying
         if (attempt < maxRetries) {
           const delay = attempt * 1000; // Progressive delay: 1s, 2s
-          console.log(`Retrying in ${delay}ms...`);
+          logger.info(`Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }

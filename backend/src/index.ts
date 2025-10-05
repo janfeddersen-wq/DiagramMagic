@@ -12,8 +12,11 @@ import { ProjectsController } from './controllers/projectsController.js';
 import { DiagramsController } from './controllers/diagramsController.js';
 import { authenticateToken, optionalAuth } from './middleware/auth.js';
 import { db } from './database/connection.js';
+import { createLogger } from './utils/logger.js';
 
 dotenv.config();
+
+const logger = createLogger('Server');
 
 const app = express();
 const httpServer = createServer(app);
@@ -27,7 +30,7 @@ const port = process.env.PORT || 3001;
 
 // Validate environment variables
 if (!process.env.CEREBRAS_API_KEY) {
-  console.error('Error: CEREBRAS_API_KEY is not set in environment variables');
+  logger.error('Error: CEREBRAS_API_KEY is not set in environment variables');
   process.exit(1);
 }
 
@@ -39,15 +42,15 @@ const speechService = process.env.SPEECH_SERVICE as 'gemini' | undefined;
 const openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-4-scout:free';
 
 if (!geminiApiKey && !openRouterApiKey) {
-  console.warn('Warning: Neither GEMINI_API_KEY nor OPENROUTER_API_KEY is set. Image-to-diagram conversion will not be available.');
+  logger.warn('Warning: Neither GEMINI_API_KEY nor OPENROUTER_API_KEY is set. Image-to-diagram conversion will not be available.');
 } else {
-  console.log(`Image service configured: ${imageService || (geminiApiKey ? 'gemini' : 'openrouter')}`);
+  logger.info(`Image service configured: ${imageService || (geminiApiKey ? 'gemini' : 'openrouter')}`);
 }
 
 if (speechService === 'gemini' && !geminiApiKey) {
-  console.warn('Warning: SPEECH_SERVICE is set to gemini but GEMINI_API_KEY is not set. Speech-to-text will not be available.');
+  logger.warn('Warning: SPEECH_SERVICE is set to gemini but GEMINI_API_KEY is not set. Speech-to-text will not be available.');
 } else if (speechService === 'gemini') {
-  console.log(`Speech service configured: gemini`);
+  logger.info(`Speech service configured: gemini`);
 }
 
 // Configure multer for file uploads
@@ -86,7 +89,7 @@ app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
+    logger.info(`${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
   });
   next();
 });
@@ -114,7 +117,7 @@ const voiceAgentApiKeyMap = new Map<string, VoiceAgentSession>(); // apiKey -> s
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  logger.info('Client connected: ' + socket.id);
 
   // Set up render validation listeners
   diagramController.setupSocketListeners(socket);
@@ -125,10 +128,10 @@ io.on('connection', (socket) => {
     const apiKey = typeof data === 'string' ? data : data.apiKey;
     const userToken = typeof data === 'object' && data !== null ? data.userToken : undefined;
 
-    console.log('🔑 [SOCKET.IO] Voice agent API key registration received');
-    console.log('🔑 [SOCKET.IO] API Key:', apiKey?.substring(0, 10) + '...');
-    console.log('🔑 [SOCKET.IO] Has user token:', !!userToken);
-    console.log('🔑 [SOCKET.IO] Socket ID:', socket.id);
+    logger.info('Voice agent API key registration received');
+    logger.debug('API Key: ' + apiKey?.substring(0, 10) + '...');
+    logger.debug('Has user token: ' + !!userToken);
+    logger.debug('Socket ID: ' + socket.id);
 
     // Decode JWT to get user ID
     let userId: number | undefined;
@@ -137,25 +140,25 @@ io.on('connection', (socket) => {
         const { verifyToken } = await import('./utils/auth.js');
         const decoded = verifyToken(userToken);
         userId = decoded.userId;
-        console.log('🔑 [SOCKET.IO] Decoded user ID:', userId);
+        logger.debug('Decoded user ID: ' + userId);
       } catch (error) {
-        console.error('🔑 [SOCKET.IO] Failed to decode JWT:', error);
+        logger.error('Failed to decode JWT:', error);
       }
     }
 
     voiceAgentApiKeyMap.set(apiKey, { socketId: socket.id, userId });
-    console.log('🔑 [SOCKET.IO] API key mapped successfully');
-    console.log('🔑 [SOCKET.IO] Total mappings:', voiceAgentApiKeyMap.size);
+    logger.info('API key mapped successfully');
+    logger.debug('Total mappings: ' + voiceAgentApiKeyMap.size);
   });
 
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    logger.info('Client disconnected: ' + socket.id);
 
     // Clean up API key mapping on disconnect
     for (const [apiKey, session] of voiceAgentApiKeyMap.entries()) {
       if (session.socketId === socket.id) {
         voiceAgentApiKeyMap.delete(apiKey);
-        console.log('Cleaned up voice agent API key');
+        logger.info('Cleaned up voice agent API key');
       }
     }
   });
@@ -196,30 +199,30 @@ app.get('/api/health', (req, res) => {
 
 // Voice Agent tool calls endpoint
 app.post('/api/voice-agent/tool-call', async (req, res) => {
-  console.log('🎯 [BACKEND] Received voice agent tool call');
-  console.log('🎯 [BACKEND] Request body:', req.body);
+  logger.info('Received voice agent tool call');
+  logger.debug('Request body: ' + JSON.stringify(req.body));
 
   const { apiKey, toolName, params } = req.body;
 
   if (!apiKey) {
-    console.error('🎯 [BACKEND] No API key provided');
+    logger.error('No API key provided');
     return res.status(401).json({ error: 'API key required' });
   }
 
-  console.log('🎯 [BACKEND] Looking up API key:', apiKey.substring(0, 10) + '...');
-  console.log('🎯 [BACKEND] Current API key mappings:', Array.from(voiceAgentApiKeyMap.keys()).map(k => k.substring(0, 10) + '...'));
+  logger.debug('Looking up API key: ' + apiKey.substring(0, 10) + '...');
+  logger.debug('Current API key mappings: ' + Array.from(voiceAgentApiKeyMap.keys()).map(k => k.substring(0, 10) + '...').join(', '));
 
   const session = voiceAgentApiKeyMap.get(apiKey);
   if (!session) {
-    console.error('🎯 [BACKEND] API key not found in mappings');
+    logger.error('API key not found in mappings');
     return res.status(404).json({ error: 'Session not found or expired' });
   }
 
-  console.log('🎯 [BACKEND] Found socket ID:', session.socketId);
+  logger.debug('Found socket ID: ' + session.socketId);
 
   const socket = io.sockets.sockets.get(session.socketId);
   if (!socket) {
-    console.error('🎯 [BACKEND] Socket not found for ID:', session.socketId);
+    logger.error('Socket not found for ID: ' + session.socketId);
     voiceAgentApiKeyMap.delete(apiKey); // Clean up stale mapping
     return res.status(404).json({ error: 'Client disconnected' });
   }
@@ -245,7 +248,7 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
         projects: projects.map(p => ({ id: p.id, name: p.name }))
       });
     } catch (error) {
-      console.error('🎯 [BACKEND] Error listing projects:', error);
+      logger.error('Error listing projects:', error);
       return res.status(500).json({ error: 'Failed to list projects' });
     }
   }
@@ -253,33 +256,35 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
   // Handle ListDiagrams specially - ask UI for current project, then return diagrams
   if (toolName === 'ListDiagrams') {
     try {
-      console.log('🎯 [BACKEND] ListDiagrams - Requesting current project from UI...');
+      logger.info('ListDiagrams - Requesting current project from UI...');
 
       // Ask the UI what project is currently selected
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
-          console.log('🎯 [BACKEND] ListDiagrams - Timeout waiting for UI response');
-          resolve(res.json({
+          logger.warn('ListDiagrams - Timeout waiting for UI response');
+          res.json({
             success: false,
             message: 'No project selected. Please select a project first.',
             diagrams: []
-          }));
+          });
+          resolve();
         }, 2000);
 
         socket.once('voice-agent:current-project-response', async (data: { projectId: number | null }) => {
           clearTimeout(timeout);
-          console.log('🎯 [BACKEND] ListDiagrams - UI responded with project:', data.projectId);
+          logger.debug('ListDiagrams - UI responded with project: ' + data.projectId);
 
           if (!data.projectId) {
-            console.log('🎯 [BACKEND] ListDiagrams - No project selected in UI');
-            return resolve(res.json({
+            logger.debug('ListDiagrams - No project selected in UI');
+            res.json({
               success: false,
               message: 'No project selected. Please select a project first.',
               diagrams: []
-            }));
+            });
+            return resolve();
           }
 
-          console.log('🎯 [BACKEND] ListDiagrams - Querying diagrams for project:', data.projectId);
+          logger.debug('ListDiagrams - Querying diagrams for project: ' + data.projectId);
           const diagrams = await db
             .selectFrom('diagrams')
             .selectAll()
@@ -287,19 +292,20 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
             .orderBy('updated_at', 'desc')
             .execute();
 
-          console.log('🎯 [BACKEND] ListDiagrams - Found diagrams:', diagrams.length);
+          logger.debug('ListDiagrams - Found diagrams: ' + diagrams.length);
 
-          return resolve(res.json({
+          res.json({
             success: true,
             diagrams: diagrams.map(d => ({ id: d.id, name: d.name }))
-          }));
+          });
+          return resolve();
         });
 
         // Emit request to UI for current project
         socket.emit('voice-agent:request-current-project');
       });
     } catch (error) {
-      console.error('🎯 [BACKEND] Error listing diagrams:', error);
+      logger.error('Error listing diagrams:', error);
       return res.status(500).json({ error: 'Failed to list diagrams' });
     }
   }
@@ -310,17 +316,17 @@ app.post('/api/voice-agent/tool-call', async (req, res) => {
     if (projectId) {
       session.currentProjectId = projectId;
       voiceAgentApiKeyMap.set(apiKey, session); // Update the map
-      console.log('🎯 [BACKEND] Updated session current project ID to:', projectId);
+      logger.debug('Updated session current project ID to: ' + projectId);
     }
   }
 
   // Emit event to the specific client's UI for other tools
   const eventName = `voice-agent:${toolName}`;
-  console.log('🎯 [BACKEND] Emitting event:', eventName, 'to socket:', session.socketId);
-  console.log('🎯 [BACKEND] Event params:', params);
+  logger.info('Emitting event: ' + eventName + ' to socket: ' + session.socketId);
+  logger.debug('Event params: ' + JSON.stringify(params));
 
   socket.emit(eventName, params);
-  console.log('🎯 [BACKEND] Event emitted successfully!');
+  logger.info('Event emitted successfully!');
 
   res.json({ success: true, message: `${toolName} triggered` });
 });
@@ -334,12 +340,12 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Start server
 httpServer.listen(port, () => {
-  console.log(`🚀 DiagramAI backend running on port ${port}`);
-  console.log(`🤖 Using model: ${cerebrasModel}`);
-  console.log(`📍 API endpoint: http://localhost:${port}/api/generate`);
-  console.log(`📁 File upload endpoint: http://localhost:${port}/api/upload`);
-  console.log(`🔌 Socket.IO server running`);
+  logger.info(`DiagramAI backend running on port ${port}`);
+  logger.info(`Using model: ${cerebrasModel}`);
+  logger.info(`API endpoint: http://localhost:${port}/api/generate`);
+  logger.info(`File upload endpoint: http://localhost:${port}/api/upload`);
+  logger.info(`Socket.IO server running`);
   if (geminiApiKey) {
-    console.log(`🖼️  Image-to-diagram conversion: Enabled`);
+    logger.info(`Image-to-diagram conversion: Enabled`);
   }
 });

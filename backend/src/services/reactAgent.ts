@@ -179,16 +179,15 @@ Rules for Mermaid diagrams:
 - Use proper Mermaid syntax
 - Make diagrams clear and well-structured, with logical color scheme
 - For flowcharts, use "flowchart TD" or "graph TD" syntax
+- For bar charts, use "xychart-beta" with this format:
+  xychart-beta
+      title "Chart Title"
+      x-axis [category1, category2, category3]
+      y-axis "Y Label" minValue --> maxValue
+      bar [value1, value2, value3]
+      line [value1, value2, value3]
 - Ensure all nodes and connections are properly defined
 - IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
-
-Visual Styling with init configuration:
-- You can customize diagram appearance using the %%{init: {...}}%% directive at the start
-- Example for mindmaps: %%{init: {"mindmap": {"padding": 70, "nodeSpacing": 40, "rankSpacing": 50}}}%%
-- Example for flowcharts: %%{init: {"flowchart": {"curve": "basis", "padding": 20}}}%%
-- Example for themes: %%{init: {"theme": "dark", "themeVariables": {"primaryColor": "#ff6b6b"}}}%%
-- Common customizations: padding, nodeSpacing, rankSpacing, curve styles, colors, fontSize
-- When users ask for "better looking", "more space", "adjust spacing", or "change colors", apply appropriate init configs
 
 Recent conversation context:
 ${chatHistory.slice(-5).map(m => `${m.role}: ${m.content}`).join('\n')}`
@@ -247,23 +246,15 @@ Rules for Mermaid diagrams:
 - Use proper Mermaid syntax
 - Make diagrams clear and well-structured
 - For flowcharts, use "flowchart TD" or "graph TD" syntax
+- For bar charts, use "xychart-beta" with this format:
+  xychart-beta
+      title "Chart Title"
+      x-axis [category1, category2, category3]
+      y-axis "Y Label" minValue --> maxValue
+      bar [value1, value2, value3]
+      line [value1, value2, value3]
 - Ensure all nodes and connections are properly defined
 - IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
-
-Visual Styling with init configuration:
-- You can customize diagram appearance using the %%{init: {...}}%% directive at the start of the diagram
-- Example for mindmaps with spacing:
-  %%{init: {"mindmap": {"padding": 70, "nodeSpacing": 40, "rankSpacing": 50}}}%%
-  mindmap
-    root((Main Topic))
-- Example for flowcharts with curves:
-  %%{init: {"flowchart": {"curve": "basis", "padding": 20}}}%%
-  flowchart TD
-- Example for custom theme colors:
-  %%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ff6b6b", "primaryTextColor": "#fff"}}}%%
-- Common customizations: padding, nodeSpacing, rankSpacing, curve (linear/basis/cardinal/monotone), fontSize
-- When users ask to "make it prettier", "add more space", "adjust spacing", "change colors", or "improve visual appeal", apply appropriate init configurations
-- For icons in mindmaps, use ::icon(fa fa-icon-name) syntax
 
 ${currentDiagram ? `Current diagram:\n${currentDiagram}` : 'No current diagram exists.'}
 

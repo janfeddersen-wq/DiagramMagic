@@ -1,9 +1,5 @@
 import { config } from 'dotenv';
 import { WorkerOptions, cli, defineAgent, llm, voice } from '@livekit/agents';
-import crypto from 'crypto';
-
-// Make crypto available globally (fix for LiveKit SDK bug)
-(globalThis as any).crypto = crypto;
 
 // Load .env from backend directory
 config({ path: '../backend/.env' });

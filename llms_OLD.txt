@@ -389,18 +389,6 @@ Bio-conversion,Solid,280.322
 Bio-conversion,Gas,81.144
 ```
 
-**Example - Energy Flow:**
-```mermaid
-sankey-beta
-
-Solar,Electricity,45
-Wind,Electricity,30
-Hydro,Electricity,25
-Electricity,Residential,40
-Electricity,Commercial,35
-Electricity,Industrial,25
-```
-
 **Key Elements:**
 - Keyword: `sankey-beta`
 - CSV format: source,target,value
@@ -413,7 +401,7 @@ Electricity,Industrial,25
 ### XY Chart
 
 Comprehensive charting using x-axis and y-axis for data representation.
-**IMPORTANT: Use this diagram type when the user asks for a bar chart, line chart, or any x-y data visualization.**
+Also use this when the user asks for a barchart.
 
 **Basic Syntax:**
 ```mermaid
@@ -423,15 +411,6 @@ xychart-beta
     y-axis "Revenue (in $)" 4000 --> 11000
     bar [5000, 6000, 7500, 8200, 9500, 10500, 11000, 10200, 9200, 8500, 7000, 6000]
     line [5000, 6000, 7500, 8200, 9500, 10500, 11000, 10200, 9200, 8500, 7000, 6000]
-```
-
-**Example - Simple Bar Chart:**
-```mermaid
-xychart-beta
-    title "Product Sales"
-    x-axis [Product A, Product B, Product C, Product D]
-    y-axis "Units Sold" 0 --> 100
-    bar [75, 45, 90, 60]
 ```
 
 **Key Elements:**

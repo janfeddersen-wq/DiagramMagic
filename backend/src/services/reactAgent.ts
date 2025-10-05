@@ -188,6 +188,16 @@ When responding, you MUST return a JSON object with this exact structure:
 
 IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
 
+# Critical Fix Instructions:
+1. **Identify the diagram type** from the broken code and ensure it's the right type for the user's needs
+2. **Compare against the syntax reference** below to find what's wrong
+3. **Follow the EXACT syntax structure** from the reference:
+   - Check keyword correctness (flowchart, sequenceDiagram, xychart-beta, etc.)
+   - Verify syntax patterns match the examples
+   - Fix node shapes, arrows, and connectors
+   - Correct indentation and formatting
+4. **If the diagram type is wrong**, switch to the correct type and rebuild following the proper syntax
+
 # Mermaid Syntax Reference
 ${this.mermaidSyntaxGuide}
 
@@ -244,6 +254,24 @@ When responding, you MUST return a JSON object with this exact structure:
 }
 
 IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
+
+# Critical Instructions:
+1. **Select the CORRECT diagram type** based on what the user is asking for:
+   - For bar charts, line charts, or x-y data → use xychart-beta
+   - For flowcharts/process flows → use flowchart TD/LR
+   - For sequence interactions → use sequenceDiagram
+   - For class structures → use classDiagram
+   - For state machines → use stateDiagram-v2
+   - For database relationships → use erDiagram
+   - And so on (refer to the syntax reference below)
+
+2. **Follow the EXACT syntax structure** from the reference below:
+   - Use the correct keyword (flowchart, sequenceDiagram, xychart-beta, etc.)
+   - Follow the syntax patterns shown in the examples
+   - Use proper node shapes, arrows, and connectors as specified
+   - Respect indentation and formatting rules
+
+3. **Study the examples** in the syntax reference to understand proper usage
 
 # Mermaid Syntax Reference
 ${this.mermaidSyntaxGuide}

@@ -371,14 +371,17 @@ export default defineAgent({
       model: process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b',
       baseURL: 'https://api.cerebras.ai/v1',
       apiKey: process.env.CEREBRAS_API_KEY,
-      toolChoice: 'auto', // Enable automatic tool calling
-      parallelToolCalls: false, // Disable parallel tool calls for simpler debugging
-      thinking: false, // Disable thinking tokens
+      toolChoice: 'auto',
+      parallelToolCalls: false,
+      thinking: false,
     });
 
     const stt = new STT({
       apiKey: process.env.DEEPGRAM_API_KEY,
     });
+
+    console.log('🎤 STT initialized with Deepgram');
+    console.log('🎤 Deepgram API key:', process.env.DEEPGRAM_API_KEY ? 'present' : 'missing');
 
     const tts = new TTS({
       apiKey: process.env.CARTESIA_API_KEY,
@@ -482,6 +485,10 @@ export default defineAgent({
 
     session.on('user_stopped_speaking', () => {
       console.log('🤫 User stopped speaking');
+    });
+
+    session.on('user_speech_committed', (msg: any) => {
+      console.log('💬 User speech transcribed:', msg);
     });
 
     await session.start({

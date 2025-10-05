@@ -52,7 +52,7 @@ export class ReactAgent {
 
       // Validate the diagram if Socket.IO is available
       if (this.io && cleanedDiagram && socketId) {
-        const maxRetries = 20;
+        const maxRetries = 30;
         let attempt = 0;
         let lastError: string | undefined;
 
@@ -188,15 +188,40 @@ When responding, you MUST return a JSON object with this exact structure:
 
 IMPORTANT: Do NOT wrap the mermaidDiagram value in triple backticks or code fences. Return ONLY the raw Mermaid code.
 
-# Critical Fix Instructions:
-1. **Identify the diagram type** from the broken code and ensure it's the right type for the user's needs
-2. **Compare against the syntax reference** below to find what's wrong
-3. **Follow the EXACT syntax structure** from the reference:
-   - Check keyword correctness (flowchart, sequenceDiagram, xychart-beta, etc.)
-   - Verify syntax patterns match the examples
-   - Fix node shapes, arrows, and connectors
-   - Correct indentation and formatting
-4. **If the diagram type is wrong**, switch to the correct type and rebuild following the proper syntax
+# CRITICAL FIX RULES - FOLLOW STRICTLY:
+
+1. **DO NOT CHANGE THE DIAGRAM TYPE** unless it's fundamentally wrong for the request
+   - If it's a flowchart, keep it a flowchart
+   - If it's an xychart-beta, keep it xychart-beta
+   - If it's a sequenceDiagram, keep it sequenceDiagram
+   - Only change type if the original choice was completely inappropriate
+
+2. **FIX ONLY THE SYNTAX ERROR** - do not redesign or restructure:
+   - Fix incorrect keywords or typos
+   - Fix malformed node definitions
+   - Fix broken arrow syntax
+   - Fix indentation issues
+   - Fix quote/bracket mismatches
+   - Keep all content and structure the same
+
+3. **PRESERVE THE DIAGRAM'S INTENT AND CONTENT**:
+   - Keep all nodes, edges, and labels intact
+   - Maintain the same flow and relationships
+   - Don't add or remove elements unless they cause the error
+   - Don't simplify or change the diagram's logic
+
+4. **REFERENCE THE EXACT SYNTAX** from the guide below:
+   - Find the diagram type in the reference
+   - Compare the broken code with the correct syntax pattern
+   - Apply ONLY the syntax fix needed
+   - Follow the exact formatting shown in examples
+
+5. **COMMON FIXES** (apply only what's needed):
+   - Missing or wrong diagram keyword
+   - Incorrect arrow syntax (-->, =>, ->>)
+   - Wrong node shape brackets
+   - Missing quotes around labels with special chars
+   - Indentation errors in nested structures
 
 # Mermaid Syntax Reference
 ${this.mermaidSyntaxGuide}

@@ -8,9 +8,10 @@ interface DiagramVersionHistoryProps {
   diagramId: number | null;
   currentVersion: DiagramVersion | null;
   onSelectVersion: (version: DiagramVersion) => void;
+  refreshTrigger?: number;
 }
 
-export function DiagramVersionHistory({ diagramId, currentVersion, onSelectVersion }: DiagramVersionHistoryProps) {
+export function DiagramVersionHistory({ diagramId, currentVersion, onSelectVersion, refreshTrigger }: DiagramVersionHistoryProps) {
   const [versions, setVersions] = useState<DiagramVersion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +20,7 @@ export function DiagramVersionHistory({ diagramId, currentVersion, onSelectVersi
     if (diagramId && isOpen) {
       loadVersions();
     }
-  }, [diagramId, isOpen]);
+  }, [diagramId, isOpen, refreshTrigger]);
 
   const loadVersions = async () => {
     if (!diagramId) return;

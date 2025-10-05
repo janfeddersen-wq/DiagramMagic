@@ -9,6 +9,7 @@ export function useDiagram() {
   const [currentDiagramObj, setCurrentDiagramObj] = useState<Diagram | null>(null);
   const [currentVersion, setCurrentVersion] = useState<DiagramVersion | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [versionRefreshTrigger, setVersionRefreshTrigger] = useState<number>(0);
 
   const updateDiagram = async (mermaidCode: string, isScratchMode: boolean) => {
     setCurrentDiagram(mermaidCode);
@@ -18,6 +19,8 @@ export function useDiagram() {
       try {
         const version = await createDiagramVersion(currentDiagramObj.id, mermaidCode);
         setCurrentVersion(version);
+        // Trigger version history refresh
+        setVersionRefreshTrigger(prev => prev + 1);
       } catch (error) {
         logger.error('Failed to save diagram version:', error);
       }
@@ -96,6 +99,7 @@ export function useDiagram() {
     currentDiagramObj,
     currentVersion,
     isLoading,
+    versionRefreshTrigger,
     updateDiagram,
     selectDiagram,
     selectVersion,

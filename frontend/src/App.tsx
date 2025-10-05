@@ -331,6 +331,7 @@ function App() {
               diagramId={diagram.currentDiagramObj.id}
               currentVersion={diagram.currentVersion}
               onSelectVersion={diagram.selectVersion}
+              refreshTrigger={diagram.versionRefreshTrigger}
             />
           )}
         </div>

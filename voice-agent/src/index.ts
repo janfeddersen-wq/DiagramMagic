@@ -413,25 +413,37 @@ export default defineAgent({
       parallelToolCalls: false,
     });
 
-    // Intercept the OpenAI client's fetch method
+    // Debug: inspect LLM instance structure
+    console.log('🔍 LLM instance keys:', Object.keys(llmInstance).slice(0, 20));
+    console.log('🔍 LLM instance proto:', Object.getPrototypeOf(llmInstance)?.constructor?.name);
+
     const llmClient = (llmInstance as any).client;
-    if (llmClient && llmClient.fetch) {
-      const originalClientFetch = llmClient.fetch.bind(llmClient);
-      llmClient.fetch = async (url: string, init?: any) => {
-        console.log('🌐 [OPENAI CLIENT FETCH]');
-        console.log('🌐 URL:', url);
-        if (init?.body) {
-          const bodyStr = init.body.toString();
-          console.log('🌐 Body length:', bodyStr.length);
-          console.log('🌐 Full Body:', bodyStr);
-        }
-        const response = await originalClientFetch(url, init);
-        console.log('🌐 Response status:', response.status);
-        return response;
-      };
-      console.log('✅ LLM client fetch intercepted');
+    console.log('🔍 LLM client exists:', !!llmClient);
+
+    if (llmClient) {
+      console.log('🔍 LLM client keys:', Object.keys(llmClient).slice(0, 20));
+      console.log('🔍 LLM client has fetch:', !!llmClient.fetch);
+
+      if (llmClient.fetch) {
+        const originalClientFetch = llmClient.fetch.bind(llmClient);
+        llmClient.fetch = async (url: string, init?: any) => {
+          console.log('🌐 [OPENAI CLIENT FETCH]');
+          console.log('🌐 URL:', url);
+          if (init?.body) {
+            const bodyStr = init.body.toString();
+            console.log('🌐 Body length:', bodyStr.length);
+            console.log('🌐 Full Body:', bodyStr);
+          }
+          const response = await originalClientFetch(url, init);
+          console.log('🌐 Response status:', response.status);
+          return response;
+        };
+        console.log('✅ LLM client fetch intercepted');
+      } else {
+        console.warn('⚠️  LLM client exists but no fetch method');
+      }
     } else {
-      console.warn('⚠️  Could not intercept LLM client fetch');
+      console.warn('⚠️  No LLM client found on instance');
     }
 
     const stt = new STT({

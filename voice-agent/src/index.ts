@@ -387,55 +387,6 @@ export default defineAgent({
       console.error('❌ STT error:', error);
     });
 
-    // Wrap STT to log all interactions
-    const originalRecognize = stt.recognize.bind(stt);
-    stt.recognize = async function(...args: any[]) {
-      console.log('🎤 STT recognize() called with args:', args.length);
-      try {
-        const result = await originalRecognize(...args);
-        console.log('🎤 STT recognize() completed');
-        return result;
-      } catch (error) {
-        console.error('❌ STT recognize() failed:', error);
-        throw error;
-      }
-    };
-
-    const originalStream = stt.stream.bind(stt);
-    stt.stream = function(...args: any[]) {
-      console.log('🎤 STT stream() called');
-      const stream = originalStream(...args);
-      console.log('🎤 STT stream type:', typeof stream);
-      console.log('🎤 STT stream constructor:', stream?.constructor?.name);
-
-      // Check if stream is an async generator
-      if (stream && typeof stream[Symbol.asyncIterator] === 'function') {
-        console.log('🎤 STT stream is async iterable');
-        // Wrap the async iterator to log results
-        const originalIterator = stream[Symbol.asyncIterator].bind(stream);
-        stream[Symbol.asyncIterator] = async function* () {
-          console.log('🎤 Starting STT async iteration');
-          try {
-            for await (const data of { [Symbol.asyncIterator]: originalIterator }) {
-              console.log('📥 STT yielded data');
-              if (data?.alternatives) {
-                console.log('📥 Transcription:', data.alternatives[0]?.transcript);
-                console.log('📥 Is final:', data.is_final);
-              }
-              console.log('📥 Full event:', JSON.stringify(data));
-              yield data;
-            }
-            console.log('🏁 STT async iteration completed');
-          } catch (error) {
-            console.error('❌ STT async iteration error:', error);
-            throw error;
-          }
-        };
-      }
-
-      return stream;
-    };
-
     console.log('🎤 STT initialized with Deepgram');
     console.log('🎤 Deepgram API key:', process.env.DEEPGRAM_API_KEY ? 'present' : 'missing');
 
@@ -518,52 +469,53 @@ export default defineAgent({
       },
     });
 
-    // Create and start the agent session
-    const session = new voice.AgentSession({
-      stt,
-      llm: llmInstance,
-      tts,
-      vad,
+    console.log('🤖 Agent created with tools:', Object.keys(agent.tools || {}).join(', '));
+
+    // Start the agent directly (no separate session needed)
+    await agent.start({
+      room: ctx.room,
     });
 
-    // Add event listeners for debugging
-    session.on('agent_started_speaking', () => {
+    console.log('✅ Voice Agent started');
+
+    // Add event listeners for debugging on the agent
+    agent.on('agent_started_speaking', () => {
       console.log('🗣️  Agent started speaking');
     });
 
-    session.on('agent_stopped_speaking', () => {
+    agent.on('agent_stopped_speaking', () => {
       console.log('🤐 Agent stopped speaking');
     });
 
-    session.on('user_started_speaking', () => {
+    agent.on('user_started_speaking', () => {
       console.log('👂 User started speaking');
     });
 
-    session.on('user_stopped_speaking', () => {
+    agent.on('user_stopped_speaking', () => {
       console.log('🤫 User stopped speaking');
     });
 
-    session.on('user_speech_committed', (msg: any) => {
+    agent.on('user_speech_committed', (msg: any) => {
       console.log('💬 User speech committed - text length:', msg?.text?.length || 0);
       console.log('💬 User speech text:', msg?.text || '(empty)');
       console.log('💬 Full message:', JSON.stringify(msg));
     });
 
-    // Try to catch all session events
-    const originalEmit = session.emit.bind(session);
-    session.emit = function(event: any, ...args: any[]) {
+    // Try to catch all agent events
+    const originalEmit = agent.emit.bind(agent);
+    agent.emit = function(event: any, ...args: any[]) {
       if (event.toString().includes('speech') || event.toString().includes('transcript')) {
-        console.log('📡 Session event:', event.toString(), 'args:', JSON.stringify(args).slice(0, 200));
+        console.log('📡 Agent event:', event.toString(), 'args:', JSON.stringify(args).slice(0, 200));
       }
       return originalEmit(event, ...args);
     };
 
     // Add more detailed debugging events
-    session.on('function_calls_collected', (calls: any) => {
+    agent.on('function_calls_collected', (calls: any) => {
       console.log('🔧 Function calls collected:', JSON.stringify(calls));
     });
 
-    session.on('function_calls_finished', (result: any) => {
+    agent.on('function_calls_finished', (result: any) => {
       console.log('✅ Function calls finished:', JSON.stringify(result));
     });
 
@@ -574,42 +526,8 @@ export default defineAgent({
 
     llmInstance.on('error', (error: any) => {
       console.error('❌ LLM error:', error);
+      console.error('❌ LLM error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     });
-
-    // Intercept LLM chat calls to see what's being sent
-    if (typeof llmInstance.chat === 'function') {
-      const originalChat = llmInstance.chat.bind(llmInstance);
-      llmInstance.chat = async function(...args: any[]) {
-        console.log('🤖 LLM chat() called with args count:', args.length);
-        if (args[0]) {
-          console.log('🤖 First arg keys:', Object.keys(args[0]));
-          console.log('🤖 Chat history length:', args[0]?.chatHistory?.length || 0);
-          if (args[0]?.chatHistory?.length > 0) {
-            const lastMsg = args[0].chatHistory[args[0].chatHistory.length - 1];
-            console.log('🤖 Latest message role:', lastMsg?.role);
-            console.log('🤖 Latest message content:', JSON.stringify(lastMsg?.content).slice(0, 300));
-          }
-        }
-        try {
-          const result = await originalChat(...args);
-          console.log('🤖 LLM chat() completed');
-          return result;
-        } catch (error) {
-          console.error('❌ LLM chat() failed with error:', error);
-          console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-          throw error;
-        }
-      };
-    } else {
-      console.warn('⚠️  llmInstance.chat is not a function, cannot intercept');
-    }
-
-    await session.start({
-      agent,
-      room: ctx.room,
-    });
-
-    console.log('✅ Voice Agent session started');
   },
 });
 

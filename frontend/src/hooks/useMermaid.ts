@@ -14,7 +14,13 @@ export function useMermaid(diagram: string, socket?: Socket, onRenderComplete?: 
       theme: 'default',
       securityLevel: 'loose',
       fontFamily: 'monospace',
-      logLevel: 'fatal' // Suppress error messages in console
+      logLevel: 'fatal', // Suppress error messages in console
+      mindmap: {
+        padding: 20,
+        nodeSpacing: 100,
+        levelSpacing: 100,
+        useMaxWidth: false
+      }
     });
   }, []);
 

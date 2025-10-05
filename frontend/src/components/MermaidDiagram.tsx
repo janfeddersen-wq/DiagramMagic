@@ -24,8 +24,8 @@ export const MermaidDiagram = forwardRef<MermaidDiagramRef, MermaidDiagramProps>
     if (containerRef.current && diagram) {
       // Initialize panzoom
       panzoomRef.current = panzoom(containerRef.current, {
-        maxZoom: 3,
-        minZoom: 0.3,
+        maxZoom: 10,  // Increased from 3 to allow deeper zoom for detailed diagrams
+        minZoom: 0.1,  // Decreased from 0.3 to allow zooming out more
         bounds: true,
         boundsPadding: 0.1,
         onTouch: (e) => {

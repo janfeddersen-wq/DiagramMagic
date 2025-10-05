@@ -451,10 +451,6 @@ export default defineAgent({
 
     // Create the voice assistant agent with tools
     const agent = new voice.Agent({
-      stt,
-      llm: llmInstance,
-      tts,
-      vad,
       instructions,
       tools: {
         AddProject: createAddProjectTool(apiKey),
@@ -471,8 +467,18 @@ export default defineAgent({
 
     console.log('🤖 Agent created with tools:', Object.keys(agent.tools || {}).join(', '));
 
-    // Start the agent using the built-in start method (which creates and manages the session internally)
-    const session = await agent.start(ctx.room);
+    // Create and start the agent session
+    const session = new voice.AgentSession({
+      stt,
+      llm: llmInstance,
+      tts,
+      vad,
+    });
+
+    await session.start({
+      agent,
+      room: ctx.room,
+    });
 
     console.log('✅ Voice Agent session started');
 

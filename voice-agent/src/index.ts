@@ -376,7 +376,11 @@ export default defineAgent({
       apiKey: process.env.CARTESIA_API_KEY,
     });
 
+    console.log('🔊 TTS initialized with Cartesia');
+    console.log('🔊 Cartesia API key:', process.env.CARTESIA_API_KEY ? 'present' : 'missing');
+
     const vad = await VAD.load();
+    console.log('🎤 VAD loaded');
 
     // System instructions
     const instructions = `You are DiagramMagic's AI voice assistant. You help users control the application using voice commands.
@@ -453,6 +457,23 @@ export default defineAgent({
       llm: llmInstance,
       tts,
       vad,
+    });
+
+    // Add event listeners for debugging
+    session.on('agent_started_speaking', () => {
+      console.log('🗣️  Agent started speaking');
+    });
+
+    session.on('agent_stopped_speaking', () => {
+      console.log('🤐 Agent stopped speaking');
+    });
+
+    session.on('user_started_speaking', () => {
+      console.log('👂 User started speaking');
+    });
+
+    session.on('user_stopped_speaking', () => {
+      console.log('🤫 User stopped speaking');
     });
 
     await session.start({

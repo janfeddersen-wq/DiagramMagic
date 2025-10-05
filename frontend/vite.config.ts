@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
+        allowedHosts: ['diagrammagic.luminon.ai'],
+
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:3001',

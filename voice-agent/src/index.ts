@@ -298,6 +298,46 @@ function createStopVoiceChatTool(apiKey: string) {
   });
 }
 
+function createSaveDiagramAsMarkdownTool(apiKey: string) {
+  return llm.tool({
+    description: 'Save the current diagram as a Markdown file',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      logger.info('🔧 [TOOL] SaveDiagramAsMarkdown called');
+      try {
+        const result = await callBackendTool(apiKey, 'SaveDiagramAsMarkdown', {});
+        return JSON.stringify({ success: true, message: 'Diagram saved as Markdown file' });
+      } catch (error) {
+        logger.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
+function createSaveDiagramAsImageTool(apiKey: string) {
+  return llm.tool({
+    description: 'Save the current diagram as a PNG image file',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async (args: any) => {
+      logger.info('🔧 [TOOL] SaveDiagramAsImage called');
+      try {
+        const result = await callBackendTool(apiKey, 'SaveDiagramAsImage', {});
+        return JSON.stringify({ success: true, message: 'Diagram saved as PNG image' });
+      } catch (error) {
+        logger.error('🔧 [TOOL] Error:', error);
+        return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    },
+  });
+}
+
 // Define the agent
 export default defineAgent({
   entry: async (ctx) => {
@@ -416,6 +456,8 @@ export default defineAgent({
     - SwitchToScratchMode: ONLY when explicitly asked to "switch to scratch mode"
     - CreateDiagram: ONLY when explicitly asked to "create a diagram" or "add a diagram" (requires diagram name)
     - TalkToDiagram: Use this for EVERYTHING ELSE - any request about creating, modifying, or generating diagrams
+    - SaveDiagramAsMarkdown: Save current diagram as a Markdown (.md) file
+    - SaveDiagramAsImage: Save current diagram as a PNG image file
     - StopVoiceChat: ONLY when user says "stop", "goodbye", "close voice chat", or "end conversation"
 
     DEFAULT BEHAVIOR:
@@ -427,6 +469,9 @@ export default defineAgent({
     - "Add error handling to the diagram" → TalkToDiagram
     - "Create a project called MyApp" → AddProject
     - "Create a diagram called UserFlow" → CreateDiagram (explicit diagram creation)
+    - "Save diagram as markdown" → SaveDiagramAsMarkdown
+    - "Download as image" → SaveDiagramAsImage
+    - "Export as PNG" → SaveDiagramAsImage
 
     MULTI-STEP WORKFLOWS (you can call multiple tools in sequence):
 
@@ -465,6 +510,8 @@ export default defineAgent({
         ListDiagrams: createListDiagramsTool(apiKey),
         SelectDiagram: createSelectDiagramTool(apiKey),
         TalkToDiagram: createTalkToDiagramTool(apiKey),
+        SaveDiagramAsMarkdown: createSaveDiagramAsMarkdownTool(apiKey),
+        SaveDiagramAsImage: createSaveDiagramAsImageTool(apiKey),
         StopVoiceChat: createStopVoiceChatTool(apiKey),
       },
     });

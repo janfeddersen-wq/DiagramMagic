@@ -229,12 +229,15 @@ export function VoiceAgentModal({
 
       // Listen for backend requests for current version
       socket.on('voice-agent:request-current-version', () => {
+        console.log('[VoiceAgent] Backend requesting current version');
+        console.log('[VoiceAgent] Current version:', currentVersion?.version, 'Total:', totalVersions);
         logger.info('Backend requesting current version');
         logger.info('Current version:', currentVersion?.version, 'Total:', totalVersions);
         socket.emit('voice-agent:current-version-response', {
           currentVersion: currentVersion?.version || null,
           totalVersions: totalVersions || 0
         });
+        console.log('[VoiceAgent] Sent response with version:', currentVersion?.version, 'total:', totalVersions);
       });
 
       // Listen for version selection requests

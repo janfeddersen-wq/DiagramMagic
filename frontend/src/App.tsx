@@ -121,9 +121,13 @@ function App() {
         try {
           const versions = await import('./services/projectsApi').then(m => m.listDiagramVersions(diagram.currentDiagramObj!.id));
           setTotalVersions(versions.length);
+          console.log('[App] Loaded versions, total:', versions.length);
+          console.log('[App] Current version:', diagram.currentVersion?.version);
         } catch (error) {
           console.error('Failed to load total versions:', error);
         }
+      } else {
+        setTotalVersions(0);
       }
     };
     loadTotalVersions();

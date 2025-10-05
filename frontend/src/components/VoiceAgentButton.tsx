@@ -18,11 +18,14 @@ export function VoiceAgentButton({ onToggle, isActive = false }: VoiceAgentButto
     onToggle(newState);
   };
 
+  const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const shortcutKey = isMac ? 'Cmd+K' : 'Ctrl+K';
+
   return (
     <button
       onClick={handleClick}
       className={`voice-agent-button ${active ? 'active' : ''}`}
-      title={active ? 'Deactivate Voice Agent' : 'Activate Voice Agent'}
+      title={active ? `Deactivate Voice Agent (${shortcutKey})` : `Activate Voice Agent (${shortcutKey})`}
       aria-label={active ? 'Deactivate Voice Agent' : 'Activate Voice Agent'}
     >
       <div className={`voice-agent-container ${active ? 'pulsing' : ''}`}>

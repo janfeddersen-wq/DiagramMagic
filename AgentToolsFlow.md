@@ -295,6 +295,7 @@ CARTESIA_API_KEY=your_cartesia_key
 
 1. Start all services: `./manage.sh start`
 2. Click the headset button in the UI
+   - **Keyboard shortcut**: Press **Ctrl+K** (Windows/Linux) or **Cmd+K** (Mac) to start the voice assistant
 3. Say: *"Open a popover"*
 4. Verify: Green bouncing popover appears
 5. Check logs:

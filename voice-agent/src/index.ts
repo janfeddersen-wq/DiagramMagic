@@ -359,6 +359,10 @@ export default defineAgent({
     }
 
     // Initialize components
+    console.log('🤖 Initializing LLM...');
+    console.log('🤖 Model:', process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b');
+    console.log('🤖 Cerebras API Key:', process.env.CEREBRAS_API_KEY ? 'present' : 'MISSING');
+
     const llmInstance = new LLM({
       model: process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b',
       baseURL: 'https://api.cerebras.ai/v1',

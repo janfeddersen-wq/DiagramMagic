@@ -401,7 +401,7 @@ Bio-conversion,Gas,81.144
 ### XY Chart
 
 Comprehensive charting using x-axis and y-axis for data representation.
-
+Also use this when the user asks for a barchart.
 **Basic Syntax:**
 ```mermaid
 xychart-beta

@@ -7,6 +7,7 @@ AI-powered Mermaid diagram generator with intelligent chat interface and visual 
 ## 🚀 Features
 
 ### Core Capabilities
+- 🎙️ **Voice Assistant**: Complete hands-free application control for people with Disabilities.
 - 🤖 **ReAct AI Agent**: Intelligent diagram generation with self-validation and error correction
 - ⚡ **Lightning Fast**: Powered by [Cerebras](https://cerebras.ai/) for ultra-fast AI inference
 - 🔍 **Image to Mermaid**: Convert diagrams from images using [Meta Llama 4 Scout](https://openrouter.ai/meta-llama/llama-4-scout) via OpenRouter (or Gemini 2.5 Flash)

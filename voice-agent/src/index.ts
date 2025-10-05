@@ -10,16 +10,19 @@ import { TTS } from '@livekit/agents-plugin-cartesia';
 import { VAD } from '@livekit/agents-plugin-silero';
 import { fileURLToPath } from 'url';
 import OpenAI from 'openai';
+import { createLogger } from './utils/logger.js';
+
+const logger = createLogger('VoiceAgent');
 
 // Backend URL for tool calls
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3001';
 
 // Helper function to call backend with API key
 async function callBackendTool(apiKey: string, toolName: string, params: any = {}): Promise<any> {
-  console.log(`📡 [BACKEND CALL] Starting call to ${toolName}`);
-  console.log(`📡 [BACKEND CALL] URL: ${BACKEND_URL}/api/voice-agent/tool-call`);
-  console.log(`📡 [BACKEND CALL] API Key: ${apiKey.substring(0, 10)}...`);
-  console.log(`📡 [BACKEND CALL] Params:`, params);
+  logger.info(`📡 [BACKEND CALL] Starting call to ${toolName}`);
+  logger.info(`📡 [BACKEND CALL] URL: ${BACKEND_URL}/api/voice-agent/tool-call`);
+  logger.info(`📡 [BACKEND CALL] API Key: ${apiKey.substring(0, 10)}...`);
+  logger.info(`📡 [BACKEND CALL] Params:`, params);
 
   try {
     const response = await fetch(`${BACKEND_URL}/api/voice-agent/tool-call`, {
@@ -34,19 +37,19 @@ async function callBackendTool(apiKey: string, toolName: string, params: any = {
       }),
     });
 
-    console.log(`📡 [BACKEND CALL] Response status:`, response.status);
+    logger.info(`📡 [BACKEND CALL] Response status:`, response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error(`📡 [BACKEND CALL] Error response:`, errorData);
+      logger.error(`📡 [BACKEND CALL] Error response:`, errorData);
       throw new Error((errorData as any).error || 'Tool call failed');
     }
 
     const result = await response.json();
-    console.log(`📡 [BACKEND CALL] Success:`, result);
+    logger.info(`📡 [BACKEND CALL] Success:`, result);
     return result;
   } catch (error) {
-    console.error(`📡 [BACKEND CALL] Exception:`, error);
+    logger.error(`📡 [BACKEND CALL] Exception:`, error);
     throw error;
   }
 }
@@ -67,13 +70,13 @@ function createAddProjectTool(apiKey: string) {
       required: ['name'],
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] AddProject called with:', args);
+      logger.info('🔧 [TOOL] AddProject called with:', args);
       const { name } = args;
       try {
         const result = await callBackendTool(apiKey, 'AddProject', { name });
         return JSON.stringify({ success: true, message: `Project "${name}" created successfully` });
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -88,7 +91,7 @@ function createListProjectsTool(apiKey: string) {
       properties: {},
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] ListProjects called');
+      logger.info('🔧 [TOOL] ListProjects called');
       try {
         const result = await callBackendTool(apiKey, 'ListProjects', {});
         // Format projects for the agent to speak
@@ -107,7 +110,7 @@ function createListProjectsTool(apiKey: string) {
           });
         }
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -128,13 +131,13 @@ function createSelectProjectTool(apiKey: string) {
       required: ['projectId'],
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] SelectProject called with:', args);
+      logger.info('🔧 [TOOL] SelectProject called with:', args);
       const { projectId } = args;
       try {
         const result = await callBackendTool(apiKey, 'SelectProject', { projectId });
         return JSON.stringify({ success: true, message: `Switched to project ${projectId}` });
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -149,12 +152,12 @@ function createSwitchToScratchModeTool(apiKey: string) {
       properties: {},
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] SwitchToScratchMode called');
+      logger.info('🔧 [TOOL] SwitchToScratchMode called');
       try {
         const result = await callBackendTool(apiKey, 'SwitchToScratchMode', {});
         return JSON.stringify({ success: true, message: 'Switched to scratch mode' });
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -175,13 +178,13 @@ function createCreateDiagramTool(apiKey: string) {
       required: ['name'],
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] CreateDiagram called with:', args);
+      logger.info('🔧 [TOOL] CreateDiagram called with:', args);
       const { name } = args;
       try {
         const result = await callBackendTool(apiKey, 'CreateDiagram', { name });
         return JSON.stringify({ success: true, message: `Diagram "${name}" created successfully` });
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -202,13 +205,13 @@ function createTalkToDiagramTool(apiKey: string) {
       required: ['message'],
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] TalkToDiagram called with:', args);
+      logger.info('🔧 [TOOL] TalkToDiagram called with:', args);
       const { message } = args;
       try {
         const result = await callBackendTool(apiKey, 'TalkToDiagram', { message });
         return JSON.stringify({ success: true, message: 'Message sent to diagram AI' });
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -223,7 +226,7 @@ function createListDiagramsTool(apiKey: string) {
       properties: {},
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] ListDiagrams called');
+      logger.info('🔧 [TOOL] ListDiagrams called');
       try {
         const result = await callBackendTool(apiKey, 'ListDiagrams', {});
         // Format diagrams for the agent to speak
@@ -242,7 +245,7 @@ function createListDiagramsTool(apiKey: string) {
           });
         }
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -263,13 +266,13 @@ function createSelectDiagramTool(apiKey: string) {
       required: ['diagramId'],
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] SelectDiagram called with:', args);
+      logger.info('🔧 [TOOL] SelectDiagram called with:', args);
       const { diagramId } = args;
       try {
         const result = await callBackendTool(apiKey, 'SelectDiagram', { diagramId });
         return JSON.stringify({ success: true, message: `Switched to diagram ${diagramId}` });
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -284,12 +287,12 @@ function createStopVoiceChatTool(apiKey: string) {
       properties: {},
     },
     execute: async (args: any) => {
-      console.log('🔧 [TOOL] StopVoiceChat called');
+      logger.info('🔧 [TOOL] StopVoiceChat called');
       try {
         const result = await callBackendTool(apiKey, 'StopVoiceChat', {});
         return JSON.stringify({ success: true, message: 'Goodbye! Voice chat stopped.' });
       } catch (error) {
-        console.error('🔧 [TOOL] Error:', error);
+        logger.error('🔧 [TOOL] Error:', error);
         return JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     },
@@ -301,18 +304,18 @@ export default defineAgent({
   entry: async (ctx) => {
     await ctx.connect();
 
-    console.log('✅ Voice Agent connected to room:', ctx.room.name);
+    logger.info('✅ Voice Agent connected to room:', ctx.room.name);
 
     // Wait for user participant to join and get their metadata (contains API key)
     let apiKey = '';
 
-    console.log('🔍 Waiting for user participant to join...');
+    logger.info('🔍 Waiting for user participant to join...');
 
     // Wait for remote participant (user) to join
     await new Promise<void>((resolve) => {
       const checkParticipants = () => {
-        console.log('🔍 Checking participants...');
-        console.log('🔍 Remote participants:', Array.from(ctx.room.remoteParticipants.values()).map(p => ({
+        logger.info('🔍 Checking participants...');
+        logger.info('🔍 Remote participants:', Array.from(ctx.room.remoteParticipants.values()).map(p => ({
           identity: p.identity,
           metadata: p.metadata
         })));
@@ -321,17 +324,17 @@ export default defineAgent({
         for (const participant of ctx.room.remoteParticipants.values()) {
           if (participant.metadata) {
             try {
-              console.log('🔍 Found participant with metadata:', participant.identity);
-              console.log('🔍 Raw metadata:', participant.metadata);
+              logger.info('🔍 Found participant with metadata:', participant.identity);
+              logger.info('🔍 Raw metadata:', participant.metadata);
               const metadata = JSON.parse(participant.metadata);
               apiKey = metadata.apiKey || '';
               if (apiKey) {
-                console.log('✅ API key extracted:', apiKey.substring(0, 10) + '...');
+                logger.info('✅ API key extracted:', apiKey.substring(0, 10) + '...');
                 resolve();
                 return;
               }
             } catch (e) {
-              console.error('❌ Failed to parse participant metadata:', e);
+              logger.error('❌ Failed to parse participant metadata:', e);
             }
           }
         }
@@ -339,7 +342,7 @@ export default defineAgent({
 
       // Listen for participant join events
       ctx.room.on('participantConnected', (participant: any) => {
-        console.log('🔍 Participant connected:', participant.identity);
+        logger.info('🔍 Participant connected:', participant.identity);
         setTimeout(checkParticipants, 100); // Small delay to ensure metadata is available
       });
 
@@ -349,14 +352,14 @@ export default defineAgent({
       setTimeout(checkParticipants, 1000);
       setTimeout(() => {
         if (!apiKey) {
-          console.warn('⚠️  No API key found after waiting - resolving anyway');
+          logger.warn('⚠️  No API key found after waiting - resolving anyway');
         }
         resolve();
       }, 2000);
     });
 
     if (!apiKey) {
-      console.warn('⚠️  No API key found in participant metadata - UI tools will not work');
+      logger.warn('⚠️  No API key found in participant metadata - UI tools will not work');
     }
 
     // Intercept global fetch to log Cerebras requests
@@ -365,29 +368,29 @@ export default defineAgent({
       const urlString = typeof url === 'string' ? url : url.toString();
 
       if (urlString.includes('cerebras')) {
-        console.log('🌐 [CEREBRAS REQUEST INTERCEPTED]');
-        console.log('🌐 URL:', urlString);
-        console.log('🌐 Method:', init?.method || 'GET');
+        logger.debug('🌐 [CEREBRAS REQUEST INTERCEPTED]');
+        logger.debug('🌐 URL:', urlString);
+        logger.debug('🌐 Method:', init?.method || 'GET');
 
         if (init?.body) {
-          console.log('🌐 Raw Body:', init.body);
+          logger.debug('🌐 Raw Body:', init.body);
           try {
             const bodyObj = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
-            console.log('🌐 Messages count:', bodyObj.messages?.length || 0);
-            console.log('🌐 Model:', bodyObj.model);
-            console.log('🌐 Tools:', bodyObj.tools?.length || 0);
-            console.log('🌐 Stream:', bodyObj.stream);
+            logger.debug('🌐 Messages count:', bodyObj.messages?.length || 0);
+            logger.debug('🌐 Model:', bodyObj.model);
+            logger.debug('🌐 Tools:', bodyObj.tools?.length || 0);
+            logger.debug('🌐 Stream:', bodyObj.stream);
 
             if (bodyObj.messages && bodyObj.messages.length > 0) {
-              console.log('🌐 === MESSAGES ===');
+              logger.debug('🌐 === MESSAGES ===');
               bodyObj.messages.forEach((msg: any, i: number) => {
-                console.log(`🌐 [${i}] ${msg.role}:`, JSON.stringify(msg.content || msg).slice(0, 500));
+                logger.debug(`🌐 [${i}] ${msg.role}:`, JSON.stringify(msg.content || msg).slice(0, 500));
               });
             } else {
-              console.log('🌐 ⚠️  NO MESSAGES IN REQUEST!');
+              logger.debug('🌐 ⚠️  NO MESSAGES IN REQUEST!');
             }
           } catch (e) {
-            console.log('🌐 Failed to parse body:', e);
+            logger.debug('🌐 Failed to parse body:', e);
           }
         }
       }
@@ -395,16 +398,16 @@ export default defineAgent({
       const response = await originalFetch(url, init);
 
       if (urlString.includes('cerebras.ai')) {
-        console.log('🌐 [CEREBRAS RESPONSE] Status:', response.status, response.statusText);
+        logger.debug('🌐 [CEREBRAS RESPONSE] Status:', response.status, response.statusText);
       }
 
       return response;
     };
 
     // Initialize components
-    console.log('🤖 Initializing LLM...');
-    console.log('🤖 Model:', process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b');
-    console.log('🤖 Cerebras API Key:', process.env.CEREBRAS_API_KEY ? 'present' : 'MISSING');
+    logger.info('🤖 Initializing LLM...');
+    logger.info('🤖 Model:', process.env.VOICE_AGENT_MODEL || 'llama-3.3-70b');
+    logger.info('🤖 Cerebras API Key:', process.env.CEREBRAS_API_KEY ? 'present' : 'MISSING');
 
     // Create OpenAI client with intercepted fetch
     const openaiClient = new OpenAI({
@@ -415,25 +418,25 @@ export default defineAgent({
     // Intercept the chat completions create method
     const originalCreate = openaiClient.chat.completions.create.bind(openaiClient.chat.completions);
     openaiClient.chat.completions.create = async function(...args: any[]) {
-      console.log('🌐 [CEREBRAS REQUEST]');
-      console.log('🌐 Full request object:', JSON.stringify(args[0], null, 2));
-      console.log('🌐 Messages count:', args[0]?.messages?.length || 0);
-      console.log('🌐 Model:', args[0]?.model);
-      console.log('🌐 Tools count:', args[0]?.tools?.length || 0);
+      logger.debug('🌐 [CEREBRAS REQUEST]');
+      logger.debug('🌐 Full request object:', JSON.stringify(args[0], null, 2));
+      logger.debug('🌐 Messages count:', args[0]?.messages?.length || 0);
+      logger.debug('🌐 Model:', args[0]?.model);
+      logger.debug('🌐 Tools count:', args[0]?.tools?.length || 0);
 
       if (args[0]?.messages) {
-        console.log('🌐 === MESSAGES ===');
+        logger.debug('🌐 === MESSAGES ===');
         args[0].messages.forEach((msg: any, i: number) => {
-          console.log(`🌐 [${i}] ${msg.role}:`, JSON.stringify(msg.content).slice(0, 500));
+          logger.debug(`🌐 [${i}] ${msg.role}:`, JSON.stringify(msg.content).slice(0, 500));
         });
       }
 
       try {
         const result = await originalCreate(...args);
-        console.log('🌐 [CEREBRAS RESPONSE] Success');
+        logger.debug('🌐 [CEREBRAS RESPONSE] Success');
         return result;
       } catch (error: any) {
-        console.error('🌐 [CEREBRAS ERROR]', error.status, error.message);
+        logger.error('🌐 [CEREBRAS ERROR]', error.status, error.message);
         throw error;
       }
     };
@@ -447,7 +450,7 @@ export default defineAgent({
       client: openaiClient,
     });
 
-    console.log('✅ LLM initialized with intercepted client');
+    logger.info('✅ LLM initialized with intercepted client');
 
     const stt = new STT({
       apiKey: process.env.DEEPGRAM_API_KEY,
@@ -457,25 +460,25 @@ export default defineAgent({
 
     // Add STT event listeners for debugging
     stt.on('metrics_collected', (metrics: any) => {
-      console.log('📊 STT metrics:', JSON.stringify(metrics));
+      logger.debug('📊 STT metrics:', JSON.stringify(metrics));
     });
 
     stt.on('error', (error: any) => {
-      console.error('❌ STT error:', error);
+      logger.error('❌ STT error:', error);
     });
 
-    console.log('🎤 STT initialized with Deepgram');
-    console.log('🎤 Deepgram API key:', process.env.DEEPGRAM_API_KEY ? 'present' : 'missing');
+    logger.info('🎤 STT initialized with Deepgram');
+    logger.info('🎤 Deepgram API key:', process.env.DEEPGRAM_API_KEY ? 'present' : 'missing');
 
     const tts = new TTS({
       apiKey: process.env.CARTESIA_API_KEY,
     });
 
-    console.log('🔊 TTS initialized with Cartesia');
-    console.log('🔊 Cartesia API key:', process.env.CARTESIA_API_KEY ? 'present' : 'missing');
+    logger.info('🔊 TTS initialized with Cartesia');
+    logger.info('🔊 Cartesia API key:', process.env.CARTESIA_API_KEY ? 'present' : 'missing');
 
     const vad = await VAD.load();
-    console.log('🎤 VAD loaded');
+    logger.info('🎤 VAD loaded');
 
     // System instructions
     const instructions = `You are DiagramMagic's AI voice assistant. You help users control the application using voice commands.
@@ -542,7 +545,7 @@ export default defineAgent({
       },
     });
 
-    console.log('🤖 Agent created with tools:', Object.keys(agent.tools || {}).join(', '));
+    logger.info('🤖 Agent created with tools:', Object.keys(agent.tools || {}).join(', '));
 
     // Create and start the agent session
     const session = new voice.AgentSession({
@@ -557,57 +560,57 @@ export default defineAgent({
       room: ctx.room,
     });
 
-    console.log('✅ Voice Agent session started');
+    logger.info('✅ Voice Agent session started');
 
     // Add event listeners for debugging
     session.on('agent_started_speaking', () => {
-      console.log('🗣️  Agent started speaking');
+      logger.debug('🗣️  Agent started speaking');
     });
 
     session.on('agent_stopped_speaking', () => {
-      console.log('🤐 Agent stopped speaking');
+      logger.debug('🤐 Agent stopped speaking');
     });
 
     session.on('user_started_speaking', () => {
-      console.log('👂 User started speaking');
+      logger.debug('👂 User started speaking');
     });
 
     session.on('user_stopped_speaking', () => {
-      console.log('🤫 User stopped speaking');
+      logger.debug('🤫 User stopped speaking');
     });
 
     session.on('user_speech_committed', (msg: any) => {
-      console.log('💬 User speech committed - text length:', msg?.text?.length || 0);
-      console.log('💬 User speech text:', msg?.text || '(empty)');
-      console.log('💬 Full message:', JSON.stringify(msg));
+      logger.info('💬 User speech committed - text length:', msg?.text?.length || 0);
+      logger.info('💬 User speech text:', msg?.text || '(empty)');
+      logger.debug('💬 Full message:', JSON.stringify(msg));
     });
 
     // Try to catch all session events
     const originalEmit = session.emit.bind(session);
     session.emit = function(event: any, ...args: any[]) {
       if (event.toString().includes('speech') || event.toString().includes('transcript')) {
-        console.log('📡 Session event:', event.toString(), 'args:', JSON.stringify(args).slice(0, 200));
+        logger.debug('📡 Session event:', event.toString(), 'args:', JSON.stringify(args).slice(0, 200));
       }
       return originalEmit(event, ...args);
     };
 
     // Add more detailed debugging events
     session.on('function_calls_collected', (calls: any) => {
-      console.log('🔧 Function calls collected:', JSON.stringify(calls));
+      logger.info('🔧 Function calls collected:', JSON.stringify(calls));
     });
 
     session.on('function_calls_finished', (result: any) => {
-      console.log('✅ Function calls finished:', JSON.stringify(result));
+      logger.info('✅ Function calls finished:', JSON.stringify(result));
     });
 
     // Add LLM debugging
     llmInstance.on('metrics_collected', (metrics: any) => {
-      console.log('📊 LLM metrics:', JSON.stringify(metrics));
+      logger.debug('📊 LLM metrics:', JSON.stringify(metrics));
     });
 
     llmInstance.on('error', (error: any) => {
-      console.error('❌ LLM error:', error);
-      console.error('❌ LLM error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      logger.error('❌ LLM error:', error);
+      logger.error('❌ LLM error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     });
   },
 });

@@ -3,6 +3,9 @@ import cors from 'cors';
 import { config } from 'dotenv';
 import { AccessToken } from 'livekit-server-sdk';
 import crypto from 'crypto';
+import { createLogger } from './utils/logger.js';
+
+const logger = createLogger('VoiceAgentServer');
 
 // Load environment variables
 config({ path: '../backend/.env' });
@@ -62,12 +65,12 @@ app.post('/token', async (req, res) => {
       apiKey: voiceApiKey, // Include API key for UI registration
     });
   } catch (error) {
-    console.error('Error generating token:', error);
+    logger.error('Error generating token:', error);
     res.status(500).json({ error: 'Failed to generate token' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`🎙️  Voice Agent HTTP server running on http://localhost:${PORT}`);
-  console.log(`📡 Token endpoint: http://localhost:${PORT}/token`);
+  logger.info(`🎙️  Voice Agent HTTP server running on http://localhost:${PORT}`);
+  logger.info(`📡 Token endpoint: http://localhost:${PORT}/token`);
 });
